@@ -56,14 +56,23 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 		}, fmt.Errorf("insufficient balance")
 	}
 
-	destination, err := u.auth.GetUserByUsername(ctx, req.ToUsername)
+	_, err = u.auth.GetUserByUsername(ctx, req.ToUsername)
 	if err != nil {
 		return TransferBalanceResponse{
 			Code: http.StatusNotFound,
 		}, nil
 	}
 
-	fmt.Println(destination)
+	err = u.balance.DisburmentBalance(ctx, domainbalance.DisburmentBalanceRequest{
+		Username:   req.Username,
+		ToUsername: req.ToUsername,
+		Amount:     req.Amount,
+	})
+	if err != nil {
+		return TransferBalanceResponse{
+			Code: http.StatusBadRequest,
+		}, err
+	}
 
 	return TransferBalanceResponse{
 		Code: http.StatusNoContent,

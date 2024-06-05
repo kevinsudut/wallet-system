@@ -19,3 +19,7 @@ func Errorln(args ...interface{}) {
 func Fatalln(args ...interface{}) {
 	logger.Fatalln(args...)
 }
+
+func Panicln(args ...interface{}) {
+	logger.Panicln(args...)
+}

@@ -9,7 +9,7 @@ import (
 )
 
 func (d domain) InsertUser(ctx context.Context, user User) error {
-	result, err := d.db.ExecContext(ctx, queryInsertUser, user.Username)
+	result, err := d.stmts.insertUser.ExecContext(ctx, user.Username)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (d domain) InsertUser(ctx context.Context, user User) error {
 func (d domain) GetUserByUsername(ctx context.Context, username string) (resp User, err error) {
 	user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, username), time.Minute*5, func() (string, error) {
 		var user User
-		err := d.db.GetContext(ctx, &user, queryGetUserByUsername, username)
+		err := d.stmts.getUserByUsername.GetContext(ctx, &user, username)
 		if err != nil {
 			return "", err
 		}
