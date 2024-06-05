@@ -9,13 +9,16 @@ import (
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
 )
 
-func (u usecase) ReadBalanceByUsername(ctx context.Context, req ReadBalanceByUsernameRequest) (resp ReadBalanceByUsernameResponse, err error) {
-	balance, err := u.balance.GetBalanceByUsername(ctx, req.Username)
+func (u usecase) ReadBalanceByUserId(ctx context.Context, req ReadBalanceByUserIdRequest) (resp ReadBalanceByUserIdResponse, err error) {
+	balance, err := u.balance.GetBalanceByUserId(ctx, req.UserId)
 	if err != nil && err != sql.ErrNoRows {
-		return resp, err
+		return ReadBalanceByUserIdResponse{
+			Code: http.StatusBadRequest,
+		}, err
 	}
 
-	return ReadBalanceByUsernameResponse{
+	return ReadBalanceByUserIdResponse{
+		Code:    http.StatusOK,
 		Balance: balance.Amount,
 	}, nil
 }
@@ -27,9 +30,9 @@ func (u usecase) TopupBalance(ctx context.Context, req TopupBalanceRequest) (res
 		}, fmt.Errorf("invalid topup amount")
 	}
 
-	err = u.balance.GrantBalanceByUsername(ctx, domainbalance.Balance{
-		Username: req.Username,
-		Amount:   req.Amount,
+	err = u.balance.GrantBalanceByUserId(ctx, domainbalance.Balance{
+		UserId: req.UserId,
+		Amount: req.Amount,
 	})
 	if err != nil {
 		return TopupBalanceResponse{
@@ -43,7 +46,7 @@ func (u usecase) TopupBalance(ctx context.Context, req TopupBalanceRequest) (res
 }
 
 func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest) (resp TransferBalanceResponse, err error) {
-	balance, err := u.balance.GetBalanceByUsername(ctx, req.Username)
+	balance, err := u.balance.GetBalanceByUserId(ctx, req.UserId)
 	if err != nil {
 		return TransferBalanceResponse{
 			Code: http.StatusBadRequest,
@@ -56,7 +59,7 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 		}, fmt.Errorf("insufficient balance")
 	}
 
-	_, err = u.auth.GetUserByUsername(ctx, req.ToUsername)
+	toUser, err := u.auth.GetUserByUsername(ctx, req.ToUsername)
 	if err != nil {
 		return TransferBalanceResponse{
 			Code: http.StatusNotFound,
@@ -64,9 +67,9 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 	}
 
 	err = u.balance.DisburmentBalance(ctx, domainbalance.DisburmentBalanceRequest{
-		Username:   req.Username,
-		ToUsername: req.ToUsername,
-		Amount:     req.Amount,
+		UserId:   req.UserId,
+		ToUserId: toUser.Id,
+		Amount:   req.Amount,
 	})
 	if err != nil {
 		return TransferBalanceResponse{

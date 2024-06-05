@@ -11,15 +11,15 @@ import (
 )
 
 func (h handler) ReadBalance(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.usecase.ReadBalanceByUsername(r.Context(), usecasebalance.ReadBalanceByUsernameRequest{
-		Username: context.GetAuth(r.Context()),
+	resp, err := h.usecase.ReadBalanceByUserId(r.Context(), usecasebalance.ReadBalanceByUserIdRequest{
+		UserId: context.GetAuth(r.Context()).Id,
 	})
 	if err != nil {
-		response.WriteErrorResponse(w, http.StatusBadRequest)
+		response.WriteErrorResponse(w, resp.Code)
 		return
 	}
 
-	response.WriteJsonResponse(w, http.StatusOK, resp)
+	response.WriteJsonResponse(w, resp.Code, resp)
 }
 
 func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Username = context.GetAuth(r.Context())
+	req.UserId = context.GetAuth(r.Context()).Id
 
 	resp, err := h.usecase.TopupBalance(r.Context(), req)
 	if err != nil {
@@ -45,7 +45,7 @@ func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJsonResponse(w, http.StatusNoContent, resp)
+	response.WriteJsonResponse(w, resp.Code, resp)
 }
 
 func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Username = context.GetAuth(r.Context())
+	req.UserId = context.GetAuth(r.Context()).Id
 
 	resp, err := h.usecase.TransferBalance(r.Context(), req)
 	if err != nil {
@@ -71,5 +71,5 @@ func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJsonResponse(w, http.StatusNoContent, resp)
+	response.WriteJsonResponse(w, resp.Code, resp)
 }

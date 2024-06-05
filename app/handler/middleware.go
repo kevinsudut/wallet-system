@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	jsoniter "github.com/json-iterator/go"
+	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
 	"github.com/kevinsudut/wallet-system/pkg/helper/context"
 	"github.com/kevinsudut/wallet-system/pkg/helper/response"
 )
@@ -22,7 +24,14 @@ func (h handler) authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx = context.SetAuth(ctx, data.(string))
+			var user domainauth.User
+			err = jsoniter.UnmarshalFromString(data.(string), &user)
+			if err != nil {
+				response.WriteErrorResponse(w, http.StatusUnauthorized)
+				return
+			}
+
+			ctx = context.SetAuth(ctx, user)
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -16,9 +16,9 @@ type domain struct {
 }
 
 type databaseStmts struct {
-	getBalanceByUsername               *sqlx.Stmt
-	getLatestHistoryByUsername         *sqlx.Stmt
-	getHistorySummaryByUsernameAndType *sqlx.Stmt
+	getBalanceByUserId               *sqlx.Stmt
+	getLatestHistoryByUserId         *sqlx.Stmt
+	getHistorySummaryByUserIdAndType *sqlx.Stmt
 }
 
 func Init(db database.DatabaseItf) DomainItf {
@@ -29,9 +29,9 @@ func Init(db database.DatabaseItf) DomainItf {
 		db:    db,
 		cache: lrucache.Init(),
 		stmts: databaseStmts{
-			getBalanceByUsername:               db.PreparexContext(ctx, queryGetBalanceByUsername),
-			getLatestHistoryByUsername:         db.PreparexContext(ctx, queryGetLatestHistoryByUsername),
-			getHistorySummaryByUsernameAndType: db.PreparexContext(ctx, queryGetHistorySummaryByUsernameAndType),
+			getBalanceByUserId:               db.PreparexContext(ctx, queryGetBalanceByUserId),
+			getLatestHistoryByUserId:         db.PreparexContext(ctx, queryGetLatestHistoryByUserId),
+			getHistorySummaryByUserIdAndType: db.PreparexContext(ctx, queryGetHistorySummaryByUserIdAndType),
 		},
 	}
 }

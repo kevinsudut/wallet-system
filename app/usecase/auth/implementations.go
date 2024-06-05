@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
 )
 
@@ -24,16 +25,19 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 		}, fmt.Errorf("username already exists")
 	}
 
-	err = u.auth.InsertUser(ctx, domainauth.User{
+	user = domainauth.User{
+		Id:       uuid.NewString(),
 		Username: req.Username,
-	})
+	}
+
+	err = u.auth.InsertUser(ctx, user)
 	if err != nil {
 		return RegisterUserResponse{
 			Code: http.StatusBadGateway,
 		}, err
 	}
 
-	token, err := u.token.Create(time.Hour, req.Username)
+	token, err := u.token.Create(time.Hour, user)
 	if err != nil {
 		return RegisterUserResponse{
 			Code: http.StatusBadGateway,
@@ -41,6 +45,7 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 	}
 
 	return RegisterUserResponse{
+		Code:  http.StatusCreated,
 		Token: token,
 	}, nil
 }

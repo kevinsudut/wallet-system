@@ -10,10 +10,10 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func (d domain) GetBalanceByUsername(ctx context.Context, username string) (resp Balance, err error) {
-	balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUsername, username), time.Minute*5, func() (string, error) {
+func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Balance, err error) {
+	balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (string, error) {
 		var balance Balance
-		err := d.stmts.getBalanceByUsername.GetContext(ctx, &balance, username)
+		err := d.stmts.getBalanceByUserId.GetContext(ctx, &balance, userId)
 		if err != nil {
 			return "", err
 		}
@@ -32,8 +32,8 @@ func (d domain) GetBalanceByUsername(ctx context.Context, username string) (resp
 	return resp, nil
 }
 
-func (d domain) grantBalanceByUsername(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
-	result, err := tx.ExecContext(ctx, queryGrantBalanceByUsername, balance.Username, balance.Amount)
+func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
+	result, err := tx.ExecContext(ctx, queryGrantBalanceByUserId, balance.UserId, balance.Amount)
 	if err != nil {
 		return err
 	}
@@ -42,13 +42,13 @@ func (d domain) grantBalanceByUsername(ctx context.Context, tx *sql.Tx, balance 
 		return fmt.Errorf("failed update to database")
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUsername, balance.Username))
+	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
 
 	return nil
 }
 
-func (d domain) deductBalanceByUsername(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
-	result, err := tx.ExecContext(ctx, queryDeductBalanceByUsername, balance.Amount, balance.Username)
+func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
+	result, err := tx.ExecContext(ctx, queryDeductBalanceByUserId, balance.Amount, balance.UserId)
 	if err != nil {
 		return err
 	}
@@ -57,13 +57,13 @@ func (d domain) deductBalanceByUsername(ctx context.Context, tx *sql.Tx, balance
 		return fmt.Errorf("failed update to database")
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUsername, balance.Username))
+	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
 
 	return nil
 }
 
 func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) (err error) {
-	result, err := tx.ExecContext(ctx, queryInsertHistory, history.Id, history.Username, history.TargetUsername, history.Amount, history.Type, history.Notes)
+	result, err := tx.ExecContext(ctx, queryInsertHistory, history.Id, history.UserId, history.TargetUserId, history.Amount, history.Type, history.Notes)
 	if err != nil {
 		return err
 	}
@@ -73,10 +73,10 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 	}
 
 	err = d.updateHistorySummary(ctx, tx, HistorySummary{
-		Username:       history.Username,
-		TargetUsername: history.TargetUsername,
-		Amount:         history.Amount,
-		Type:           history.Type,
+		UserId:       history.UserId,
+		TargetUserId: history.TargetUserId,
+		Amount:       history.Amount,
+		Type:         history.Type,
 	})
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 }
 
 func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySummary HistorySummary) (err error) {
-	result, err := tx.ExecContext(ctx, queryUpdateHistorySummaryById, historySummary.GetId(), historySummary.Username, historySummary.TargetUsername, historySummary.Amount, historySummary.Type)
+	result, err := tx.ExecContext(ctx, queryUpdateHistorySummaryById, historySummary.GetId(), historySummary.UserId, historySummary.TargetUserId, historySummary.Amount, historySummary.Type)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySum
 	return nil
 }
 
-func (d domain) GrantBalanceByUsername(ctx context.Context, balance Balance) (err error) {
+func (d domain) GrantBalanceByUserId(ctx context.Context, balance Balance) (err error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
@@ -112,18 +112,18 @@ func (d domain) GrantBalanceByUsername(ctx context.Context, balance Balance) (er
 		}
 	}()
 
-	err = d.grantBalanceByUsername(ctx, tx, balance)
+	err = d.grantBalanceByUserId(ctx, tx, balance)
 	if err != nil {
 		return err
 	}
 
 	err = d.insertHistory(ctx, tx, History{
-		Id:             uuid.NewString(),
-		Username:       balance.Username,
-		TargetUsername: balance.Username,
-		Amount:         balance.Amount,
-		Type:           int(CREDIT),
-		Notes:          "Top-up money",
+		Id:           uuid.NewString(),
+		UserId:       balance.UserId,
+		TargetUserId: balance.UserId,
+		Amount:       balance.Amount,
+		Type:         int(CREDIT),
+		Notes:        "Top-up money",
 	})
 	if err != nil {
 		return err
@@ -146,41 +146,41 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 		}
 	}()
 
-	err = d.grantBalanceByUsername(ctx, tx, Balance{
-		Username: req.ToUsername,
-		Amount:   req.Amount,
+	err = d.grantBalanceByUserId(ctx, tx, Balance{
+		UserId: req.ToUserId,
+		Amount: req.Amount,
 	})
 	if err != nil {
 		return err
 	}
 
-	err = d.deductBalanceByUsername(ctx, tx, Balance{
-		Username: req.Username,
-		Amount:   req.Amount,
-	})
-	if err != nil {
-		return err
-	}
-
-	err = d.insertHistory(ctx, tx, History{
-		Id:             uuid.NewString(),
-		Username:       req.ToUsername,
-		TargetUsername: req.Username,
-		Amount:         req.Amount,
-		Type:           int(CREDIT),
-		Notes:          fmt.Sprintf("Receive money from %s", req.Username),
+	err = d.deductBalanceByUserId(ctx, tx, Balance{
+		UserId: req.ToUserId,
+		Amount: req.Amount,
 	})
 	if err != nil {
 		return err
 	}
 
 	err = d.insertHistory(ctx, tx, History{
-		Id:             uuid.NewString(),
-		Username:       req.Username,
-		TargetUsername: req.ToUsername,
-		Amount:         req.Amount,
-		Type:           int(DEBIT),
-		Notes:          fmt.Sprintf("Transfer money to %s", req.ToUsername),
+		Id:           uuid.NewString(),
+		UserId:       req.ToUserId,
+		TargetUserId: req.UserId,
+		Amount:       req.Amount,
+		Type:         int(CREDIT),
+		Notes:        fmt.Sprintf("Receive money from %s", req.UserId),
+	})
+	if err != nil {
+		return err
+	}
+
+	err = d.insertHistory(ctx, tx, History{
+		Id:           uuid.NewString(),
+		UserId:       req.UserId,
+		TargetUserId: req.UserId,
+		Amount:       req.Amount,
+		Type:         int(DEBIT),
+		Notes:        fmt.Sprintf("Transfer money to %s", req.UserId),
 	})
 	if err != nil {
 		return err

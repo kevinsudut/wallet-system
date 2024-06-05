@@ -8,8 +8,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func (d domain) InsertUser(ctx context.Context, user User) error {
-	result, err := d.stmts.insertUser.ExecContext(ctx, user.Username)
+func (d domain) InsertUser(ctx context.Context, user User) (err error) {
+	result, err := d.stmts.insertUser.ExecContext(ctx, user.Id, user.Username)
 	if err != nil {
 		return err
 	}

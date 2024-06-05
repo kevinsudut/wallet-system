@@ -39,19 +39,19 @@ func (m *MockUsecaseItf) EXPECT() *MockUsecaseItfMockRecorder {
 	return m.recorder
 }
 
-// ReadBalanceByUsername mocks base method.
-func (m *MockUsecaseItf) ReadBalanceByUsername(ctx context.Context, req ReadBalanceByUsernameRequest) (ReadBalanceByUsernameResponse, error) {
+// ReadBalanceByUserId mocks base method.
+func (m *MockUsecaseItf) ReadBalanceByUserId(ctx context.Context, req ReadBalanceByUserIdRequest) (ReadBalanceByUserIdResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReadBalanceByUsername", ctx, req)
-	ret0, _ := ret[0].(ReadBalanceByUsernameResponse)
+	ret := m.ctrl.Call(m, "ReadBalanceByUserId", ctx, req)
+	ret0, _ := ret[0].(ReadBalanceByUserIdResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ReadBalanceByUsername indicates an expected call of ReadBalanceByUsername.
-func (mr *MockUsecaseItfMockRecorder) ReadBalanceByUsername(ctx, req any) *gomock.Call {
+// ReadBalanceByUserId indicates an expected call of ReadBalanceByUserId.
+func (mr *MockUsecaseItfMockRecorder) ReadBalanceByUserId(ctx, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadBalanceByUsername", reflect.TypeOf((*MockUsecaseItf)(nil).ReadBalanceByUsername), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadBalanceByUserId", reflect.TypeOf((*MockUsecaseItf)(nil).ReadBalanceByUserId), ctx, req)
 }
 
 // TopupBalance mocks base method.

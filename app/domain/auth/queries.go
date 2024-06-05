@@ -2,10 +2,16 @@ package domainauth
 
 const (
 	queryInsertUser = `
-		INSERT INTO users (username) VALUES ($1);
+		INSERT INTO users (id, username) VALUES ($1, $2);
 	`
 
 	queryGetUserByUsername = `
-		SELECT username FROM users WHERE username = $1;
+		SELECT
+			id,
+			username
+		FROM
+			users
+		WHERE
+			username = $1;
 	`
 )

@@ -1,42 +1,70 @@
 package domainbalance
 
 const (
-	queryGetBalanceByUsername = `
-		SELECT username, amount FROM balances WHERE username = $1;
+	queryGetBalanceByUserId = `
+		SELECT
+			user_id,
+			amount
+		FROM
+			balances
+		WHERE
+			user_id = $1;
 	`
 
-	queryGrantBalanceByUsername = `
-		INSERT INTO balances (username, amount) VALUES ($1, $2)
-		ON CONFLICT (username)
+	queryGrantBalanceByUserId = `
+		INSERT INTO balances (user_id, amount) VALUES ($1, $2)
+		ON CONFLICT (user_id)
 		DO UPDATE SET
 			amount = balances.amount + EXCLUDED.amount,
 			updated_at = NOW();
 	`
 
-	queryDeductBalanceByUsername = `
+	queryDeductBalanceByUserId = `
 		UPDATE balances SET
 			amount = amount - $1,
 			updated_at = NOW()
-		WHERE username = $2 AND amount - $1 >= 0; 
+		WHERE user_id = $2 AND amount - $1 >= 0; 
 	`
 
 	queryInsertHistory = `
-		INSERT INTO histories (id, username, target_username, amount, type, notes) VALUES ($1, $2, $3, $4, $5, $6);
+		INSERT INTO histories (id, user_id, target_user_id, amount, type, notes) VALUES ($1, $2, $3, $4, $5, $6);
 	`
 
 	queryUpdateHistorySummaryById = `
-		INSERT INTO history_summaries (id, username, target_username, amount, type) VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO history_summaries (id, user_id, target_user_id, amount, type) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (id)
 		DO UPDATE SET
 			amount = history_summaries.amount + EXCLUDED.amount,
 			updated_at = NOW();
 	`
 
-	queryGetLatestHistoryByUsername = `
-		SELECT id, username, target_username, amount, type, notes FROM histories WHERE username = $1 ORDER BY created_at DESC LIMIT $2;
+	queryGetLatestHistoryByUserId = `
+		SELECT
+			id,
+			user_id,
+			target_user_id,
+			amount,
+			type,
+			notes
+		FROM
+			histories
+		WHERE
+			user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2;
 	`
 
-	queryGetHistorySummaryByUsernameAndType = `
-		SELECT username, target_username, amount, type FROM history_summaries WHERE username = $1 AND type = $2 ORDER BY amount DESC LIMIT $3; 
+	queryGetHistorySummaryByUserIdAndType = `
+		SELECT
+			user_id,
+			target_user_id,
+			amount,
+			type
+		FROM
+			history_summaries
+		WHERE
+			user_id = $1 AND type = $2
+		ORDER BY amount DESC
+		LIMIT $3; 
 	`
 )

@@ -53,31 +53,31 @@ func (mr *MockDomainItfMockRecorder) DisburmentBalance(ctx, req any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisburmentBalance", reflect.TypeOf((*MockDomainItf)(nil).DisburmentBalance), ctx, req)
 }
 
-// GetBalanceByUsername mocks base method.
-func (m *MockDomainItf) GetBalanceByUsername(ctx context.Context, username string) (Balance, error) {
+// GetBalanceByUserId mocks base method.
+func (m *MockDomainItf) GetBalanceByUserId(ctx context.Context, userId string) (Balance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBalanceByUsername", ctx, username)
+	ret := m.ctrl.Call(m, "GetBalanceByUserId", ctx, userId)
 	ret0, _ := ret[0].(Balance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetBalanceByUsername indicates an expected call of GetBalanceByUsername.
-func (mr *MockDomainItfMockRecorder) GetBalanceByUsername(ctx, username any) *gomock.Call {
+// GetBalanceByUserId indicates an expected call of GetBalanceByUserId.
+func (mr *MockDomainItfMockRecorder) GetBalanceByUserId(ctx, userId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceByUsername", reflect.TypeOf((*MockDomainItf)(nil).GetBalanceByUsername), ctx, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceByUserId", reflect.TypeOf((*MockDomainItf)(nil).GetBalanceByUserId), ctx, userId)
 }
 
-// GrantBalanceByUsername mocks base method.
-func (m *MockDomainItf) GrantBalanceByUsername(ctx context.Context, balance Balance) error {
+// GrantBalanceByUserId mocks base method.
+func (m *MockDomainItf) GrantBalanceByUserId(ctx context.Context, balance Balance) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GrantBalanceByUsername", ctx, balance)
+	ret := m.ctrl.Call(m, "GrantBalanceByUserId", ctx, balance)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GrantBalanceByUsername indicates an expected call of GrantBalanceByUsername.
-func (mr *MockDomainItfMockRecorder) GrantBalanceByUsername(ctx, balance any) *gomock.Call {
+// GrantBalanceByUserId indicates an expected call of GrantBalanceByUserId.
+func (mr *MockDomainItfMockRecorder) GrantBalanceByUserId(ctx, balance any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrantBalanceByUsername", reflect.TypeOf((*MockDomainItf)(nil).GrantBalanceByUsername), ctx, balance)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrantBalanceByUserId", reflect.TypeOf((*MockDomainItf)(nil).GrantBalanceByUserId), ctx, balance)
 }

@@ -30,5 +30,5 @@ func (h handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJsonResponse(w, http.StatusCreated, resp)
+	response.WriteJsonResponse(w, resp.Code, resp)
 }

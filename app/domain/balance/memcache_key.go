@@ -1,5 +1,5 @@
 package domainbalance
 
 const (
-	memcacheKeyGetBalanceByUsername = "domain:balance:username:%s"
+	memcacheKeyGetBalanceByUserId = "domain:balance:user_id:%s"
 )

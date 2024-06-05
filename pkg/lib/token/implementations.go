@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func (t token) Create(ttl time.Duration, content interface{}) (string, error) {
@@ -16,8 +17,13 @@ func (t token) Create(ttl time.Duration, content interface{}) (string, error) {
 
 	now := time.Now().UTC()
 
+	str, err := jsoniter.MarshalToString(content)
+	if err != nil {
+		return "", err
+	}
+
 	claims := make(jwt.MapClaims)
-	claims["dat"] = content
+	claims["dat"] = str
 	claims["exp"] = now.Add(ttl).Unix()
 	claims["iat"] = now.Unix()
 	claims["nbf"] = now.Unix()
