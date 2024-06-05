@@ -5,14 +5,16 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kevinsudut/wallet-system/pkg/helper/singleflight"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	lrucache "github.com/kevinsudut/wallet-system/pkg/lib/lru-cache"
 )
 
 type domain struct {
-	db    database.DatabaseItf
-	cache lrucache.LRUCacheItf
-	stmts databaseStmts
+	db           database.DatabaseItf
+	cache        lrucache.LRUCacheItf
+	stmts        databaseStmts
+	singleflight singleflight.SingleFlightItf
 }
 
 type databaseStmts struct {
@@ -33,5 +35,6 @@ func Init(db database.DatabaseItf) DomainItf {
 			getLatestHistoryByUserId:         db.PreparexContext(ctx, queryGetLatestHistoryByUserId),
 			getHistorySummaryByUserIdAndType: db.PreparexContext(ctx, queryGetHistorySummaryByUserIdAndType),
 		},
+		singleflight: singleflight.Init(),
 	}
 }

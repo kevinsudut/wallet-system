@@ -23,6 +23,6 @@ func Init(token token.TokenItf, db database.DatabaseItf) usecase {
 	return usecase{
 		Auth:        usecaseauth.Init(domainAuth, token),
 		Balance:     usecasebalance.Init(domainBalance, domainAuth),
-		Transaction: usecasetransaction.Init(),
+		Transaction: usecasetransaction.Init(domainAuth, domainBalance),
 	}
 }

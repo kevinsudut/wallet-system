@@ -68,6 +68,36 @@ func (mr *MockDomainItfMockRecorder) GetBalanceByUserId(ctx, userId any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceByUserId", reflect.TypeOf((*MockDomainItf)(nil).GetBalanceByUserId), ctx, userId)
 }
 
+// GetHistorySummaryByUserIdAndType mocks base method.
+func (m *MockDomainItf) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) ([]HistorySummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHistorySummaryByUserIdAndType", ctx, userId, historyType)
+	ret0, _ := ret[0].([]HistorySummary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHistorySummaryByUserIdAndType indicates an expected call of GetHistorySummaryByUserIdAndType.
+func (mr *MockDomainItfMockRecorder) GetHistorySummaryByUserIdAndType(ctx, userId, historyType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHistorySummaryByUserIdAndType", reflect.TypeOf((*MockDomainItf)(nil).GetHistorySummaryByUserIdAndType), ctx, userId, historyType)
+}
+
+// GetLatestHistoryByUserId mocks base method.
+func (m *MockDomainItf) GetLatestHistoryByUserId(ctx context.Context, userId string) ([]History, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLatestHistoryByUserId", ctx, userId)
+	ret0, _ := ret[0].([]History)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLatestHistoryByUserId indicates an expected call of GetLatestHistoryByUserId.
+func (mr *MockDomainItfMockRecorder) GetLatestHistoryByUserId(ctx, userId any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestHistoryByUserId", reflect.TypeOf((*MockDomainItf)(nil).GetLatestHistoryByUserId), ctx, userId)
+}
+
 // GrantBalanceByUserId mocks base method.
 func (m *MockDomainItf) GrantBalanceByUserId(ctx context.Context, balance Balance) error {
 	m.ctrl.T.Helper()

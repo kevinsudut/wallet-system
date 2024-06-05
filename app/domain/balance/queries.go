@@ -51,7 +51,7 @@ const (
 		WHERE
 			user_id = $1
 		ORDER BY created_at DESC
-		LIMIT $2;
+		LIMIT 10;
 	`
 
 	queryGetHistorySummaryByUserIdAndType = `
@@ -65,6 +65,6 @@ const (
 		WHERE
 			user_id = $1 AND type = $2
 		ORDER BY amount DESC
-		LIMIT $3; 
+		LIMIT 10; 
 	`
 )

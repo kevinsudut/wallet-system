@@ -7,11 +7,13 @@ import (
 	"net/http"
 
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
+	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
 func (u usecase) ReadBalanceByUserId(ctx context.Context, req ReadBalanceByUserIdRequest) (resp ReadBalanceByUserIdResponse, err error) {
 	balance, err := u.balance.GetBalanceByUserId(ctx, req.UserId)
 	if err != nil && err != sql.ErrNoRows {
+		log.Errorln("ReadBalanceByUserId.GetBalanceByUserId", err)
 		return ReadBalanceByUserIdResponse{
 			Code: http.StatusBadRequest,
 		}, err
@@ -35,6 +37,7 @@ func (u usecase) TopupBalance(ctx context.Context, req TopupBalanceRequest) (res
 		Amount: req.Amount,
 	})
 	if err != nil {
+		log.Errorln("TopupBalance.GrantBalanceByUserId", err)
 		return TopupBalanceResponse{
 			Code: http.StatusBadRequest,
 		}, err
@@ -48,6 +51,7 @@ func (u usecase) TopupBalance(ctx context.Context, req TopupBalanceRequest) (res
 func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest) (resp TransferBalanceResponse, err error) {
 	balance, err := u.balance.GetBalanceByUserId(ctx, req.UserId)
 	if err != nil {
+		log.Errorln("TransferBalance.GetBalanceByUserId", err)
 		return TransferBalanceResponse{
 			Code: http.StatusBadRequest,
 		}, nil
@@ -61,6 +65,7 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 
 	toUser, err := u.auth.GetUserByUsername(ctx, req.ToUsername)
 	if err != nil {
+		log.Errorln("TransferBalance.GetUserByUsername", err)
 		return TransferBalanceResponse{
 			Code: http.StatusNotFound,
 		}, nil
@@ -72,6 +77,7 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 		Amount:   req.Amount,
 	})
 	if err != nil {
+		log.Errorln("TransferBalance.DisburmentBalance", err)
 		return TransferBalanceResponse{
 			Code: http.StatusBadRequest,
 		}, err

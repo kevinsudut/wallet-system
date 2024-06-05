@@ -9,11 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
 func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (resp RegisterUserResponse, err error) {
 	user, err := u.auth.GetUserByUsername(ctx, req.Username)
 	if err != nil && err != sql.ErrNoRows {
+		log.Errorln("RegisterUser.GetUserByUsername", err)
 		return RegisterUserResponse{
 			Code: http.StatusBadGateway,
 		}, err
@@ -32,6 +34,7 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 
 	err = u.auth.InsertUser(ctx, user)
 	if err != nil {
+		log.Errorln("RegisterUser.InsertUser", err)
 		return RegisterUserResponse{
 			Code: http.StatusBadGateway,
 		}, err
@@ -39,6 +42,7 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 
 	token, err := u.token.Create(time.Hour, user)
 	if err != nil {
+		log.Errorln("RegisterUser.Create", err)
 		return RegisterUserResponse{
 			Code: http.StatusBadGateway,
 		}, err

@@ -13,6 +13,7 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.9.3
 	go.uber.org/mock v0.4.0
+	golang.org/x/sync v0.7.0
 )
 
 require (

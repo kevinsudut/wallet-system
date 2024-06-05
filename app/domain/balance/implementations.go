@@ -11,25 +11,39 @@ import (
 )
 
 func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Balance, err error) {
-	balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (string, error) {
-		var balance Balance
-		err := d.stmts.getBalanceByUserId.GetContext(ctx, &balance, userId)
+	defer func() {
+		if err == nil && resp.UserId == "" {
+			err = sql.ErrNoRows
+		}
+	}()
+
+	balance, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetBalanceByUserId, userId), func() (interface{}, error) {
+		var resp Balance
+		balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (string, error) {
+			var balance Balance
+			err := d.stmts.getBalanceByUserId.GetContext(ctx, &balance, userId)
+			if err != nil && err != sql.ErrNoRows {
+				return "", err
+			}
+
+			return jsoniter.MarshalToString(balance)
+		})
 		if err != nil {
-			return "", err
+			return resp, err
 		}
 
-		return jsoniter.MarshalToString(balance)
+		err = jsoniter.UnmarshalFromString(balance.Value(), &resp)
+		if err != nil {
+			return resp, err
+		}
+
+		return resp, nil
 	})
 	if err != nil {
 		return resp, err
 	}
 
-	err = jsoniter.UnmarshalFromString(balance.Value(), &resp)
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
+	return balance.(Balance), nil
 }
 
 func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
@@ -82,6 +96,8 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 		return err
 	}
 
+	d.cache.Delete(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, history.UserId))
+
 	return nil
 }
 
@@ -94,6 +110,8 @@ func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySum
 	if row, err := result.RowsAffected(); err != nil || row <= 0 {
 		return fmt.Errorf("failed update to database")
 	}
+
+	d.cache.Delete(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, historySummary.UserId, historySummary.Type))
 
 	return nil
 }
@@ -187,4 +205,72 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 	}
 
 	return nil
+}
+
+func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (resp []History, err error) {
+	defer func() {
+		if err != nil {
+			for i := range resp {
+				resp[i].NormalizeAmount()
+			}
+		}
+	}()
+
+	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
+		var resp []History
+		histories, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (string, error) {
+			var history []History
+			err := d.stmts.getLatestHistoryByUserId.SelectContext(ctx, &history, userId)
+			if err != nil {
+				return "", err
+			}
+
+			return jsoniter.MarshalToString(history)
+		})
+		if err != nil {
+			return resp, err
+		}
+
+		err = jsoniter.UnmarshalFromString(histories.Value(), &resp)
+		if err != nil {
+			return resp, err
+		}
+
+		return resp, nil
+	})
+	if err != nil {
+		return resp, err
+	}
+
+	return histories.([]History), nil
+}
+
+func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []HistorySummary, err error) {
+	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId), func() (interface{}, error) {
+		var resp []HistorySummary
+		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (string, error) {
+			var historySummary []HistorySummary
+			err := d.stmts.getHistorySummaryByUserIdAndType.SelectContext(ctx, &historySummary, userId, historyType)
+			if err != nil {
+				return "", err
+			}
+
+			return jsoniter.MarshalToString(historySummary)
+		})
+		if err != nil {
+			return resp, err
+		}
+
+		err = jsoniter.UnmarshalFromString(historySummaries.Value(), &resp)
+		if err != nil {
+			return resp, err
+		}
+
+		return resp, nil
+	})
+	if err != nil {
+		return resp, err
+	}
+
+	return historySummaries.([]HistorySummary), nil
 }

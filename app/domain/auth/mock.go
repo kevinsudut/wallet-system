@@ -39,6 +39,21 @@ func (m *MockDomainItf) EXPECT() *MockDomainItfMockRecorder {
 	return m.recorder
 }
 
+// GetUserById mocks base method.
+func (m *MockDomainItf) GetUserById(ctx context.Context, id string) (User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserById", ctx, id)
+	ret0, _ := ret[0].(User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserById indicates an expected call of GetUserById.
+func (mr *MockDomainItfMockRecorder) GetUserById(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserById", reflect.TypeOf((*MockDomainItf)(nil).GetUserById), ctx, id)
+}
+
 // GetUserByUsername mocks base method.
 func (m *MockDomainItf) GetUserByUsername(ctx context.Context, username string) (User, error) {
 	m.ctrl.T.Helper()

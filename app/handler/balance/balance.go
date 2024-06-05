@@ -8,6 +8,7 @@ import (
 	usecasebalance "github.com/kevinsudut/wallet-system/app/usecase/balance"
 	"github.com/kevinsudut/wallet-system/pkg/helper/context"
 	"github.com/kevinsudut/wallet-system/pkg/helper/response"
+	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
 func (h handler) ReadBalance(w http.ResponseWriter, r *http.Request) {
@@ -15,6 +16,7 @@ func (h handler) ReadBalance(w http.ResponseWriter, r *http.Request) {
 		UserId: context.GetAuth(r.Context()).Id,
 	})
 	if err != nil {
+		log.Errorln("ReadBalance.ReadBalanceByUserId", err)
 		response.WriteErrorResponse(w, resp.Code)
 		return
 	}
@@ -25,6 +27,7 @@ func (h handler) ReadBalance(w http.ResponseWriter, r *http.Request) {
 func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Errorln("TopupBalance.ReadAll", err)
 		response.WriteErrorResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -33,6 +36,7 @@ func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 
 	err = jsoniter.Unmarshal(body, &req)
 	if err != nil {
+		log.Errorln("TopupBalance.Unmarshal", err)
 		response.WriteErrorResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -41,6 +45,7 @@ func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.usecase.TopupBalance(r.Context(), req)
 	if err != nil {
+		log.Errorln("TopupBalance.TopupBalance", err)
 		response.WriteErrorResponse(w, resp.Code)
 		return
 	}
@@ -51,6 +56,7 @@ func (h handler) TopupBalance(w http.ResponseWriter, r *http.Request) {
 func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Errorln("TransferBalance.ReadAll", err)
 		response.WriteErrorResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -59,6 +65,7 @@ func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
 
 	err = jsoniter.Unmarshal(body, &req)
 	if err != nil {
+		log.Errorln("TransferBalance.Unmarshal", err)
 		response.WriteErrorResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -67,6 +74,7 @@ func (h handler) TransferBalance(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.usecase.TransferBalance(r.Context(), req)
 	if err != nil {
+		log.Errorln("TransferBalance.TransferBalance", err)
 		response.WriteErrorResponse(w, resp.Code)
 		return
 	}

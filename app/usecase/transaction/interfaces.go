@@ -3,5 +3,6 @@ package usecasetransaction
 import "context"
 
 type UsecaseItf interface {
-	RegisterUser(ctx context.Context, req RegisterUserRequest) (resp RegisterUserResponse, err error)
+	ListOverallTopTransactingUsersByValue(ctx context.Context, req ListOverallTopTransactingUsersByValueRequest) (resp ListOverallTopTransactingUsersByValueResponse, err error)
+	TopTransactionsForUser(ctx context.Context, req TopTransactionsForUserRequest) (resp TopTransactionsForUserResponse, err error)
 }
