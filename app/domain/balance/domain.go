@@ -21,6 +21,10 @@ type databaseStmts struct {
 	getBalanceByUserId               *sqlx.Stmt
 	getLatestHistoryByUserId         *sqlx.Stmt
 	getHistorySummaryByUserIdAndType *sqlx.Stmt
+	grantBalanceByUserId             *sqlx.Stmt
+	deductBalanceByUserId            *sqlx.Stmt
+	insertHistory                    *sqlx.Stmt
+	updateHistorySummaryById         *sqlx.Stmt
 }
 
 func Init(db database.DatabaseItf) DomainItf {
@@ -34,6 +38,10 @@ func Init(db database.DatabaseItf) DomainItf {
 			getBalanceByUserId:               db.PreparexContext(ctx, queryGetBalanceByUserId),
 			getLatestHistoryByUserId:         db.PreparexContext(ctx, queryGetLatestHistoryByUserId),
 			getHistorySummaryByUserIdAndType: db.PreparexContext(ctx, queryGetHistorySummaryByUserIdAndType),
+			grantBalanceByUserId:             db.PreparexContext(ctx, queryGrantBalanceByUserId),
+			deductBalanceByUserId:            db.PreparexContext(ctx, queryDeductBalanceByUserId),
+			insertHistory:                    db.PreparexContext(ctx, queryInsertHistory),
+			updateHistorySummaryById:         db.PreparexContext(ctx, queryUpdateHistorySummaryById),
 		},
 		singleflight: singleflight.Init(),
 	}

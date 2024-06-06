@@ -56,63 +56,61 @@ func (mr *MockDatabaseItfMockRecorder) Begin() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockDatabaseItf)(nil).Begin))
 }
 
-// ExecContext mocks base method.
-func (m *MockDatabaseItf) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+// ExecContextStmt mocks base method.
+func (m *MockDatabaseItf) ExecContextStmt(ctx context.Context, stmt *sqlx.Stmt, args ...any) error {
 	m.ctrl.T.Helper()
-	varargs := []any{ctx, query}
+	varargs := []any{ctx, stmt}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "ExecContext", varargs...)
-	ret0, _ := ret[0].(sql.Result)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ExecContext indicates an expected call of ExecContext.
-func (mr *MockDatabaseItfMockRecorder) ExecContext(ctx, query any, args ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContext", reflect.TypeOf((*MockDatabaseItf)(nil).ExecContext), varargs...)
-}
-
-// ExecContextTx mocks base method.
-func (m *MockDatabaseItf) ExecContextTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (sql.Result, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, tx, query}
-	for _, a := range args {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ExecContextTx", varargs...)
-	ret0, _ := ret[0].(sql.Result)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ExecContextTx indicates an expected call of ExecContextTx.
-func (mr *MockDatabaseItfMockRecorder) ExecContextTx(ctx, tx, query any, args ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, tx, query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContextTx", reflect.TypeOf((*MockDatabaseItf)(nil).ExecContextTx), varargs...)
-}
-
-// GetContext mocks base method.
-func (m *MockDatabaseItf) GetContext(ctx context.Context, dest any, query string, args ...any) error {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, dest, query}
-	for _, a := range args {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetContext", varargs...)
+	ret := m.ctrl.Call(m, "ExecContextStmt", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GetContext indicates an expected call of GetContext.
-func (mr *MockDatabaseItfMockRecorder) GetContext(ctx, dest, query any, args ...any) *gomock.Call {
+// ExecContextStmt indicates an expected call of ExecContextStmt.
+func (mr *MockDatabaseItfMockRecorder) ExecContextStmt(ctx, stmt any, args ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, dest, query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContext", reflect.TypeOf((*MockDatabaseItf)(nil).GetContext), varargs...)
+	varargs := append([]any{ctx, stmt}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContextStmt", reflect.TypeOf((*MockDatabaseItf)(nil).ExecContextStmt), varargs...)
+}
+
+// ExecContextStmtTx mocks base method.
+func (m *MockDatabaseItf) ExecContextStmtTx(ctx context.Context, tx *sql.Tx, stmt *sqlx.Stmt, args ...any) error {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, tx, stmt}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExecContextStmtTx", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ExecContextStmtTx indicates an expected call of ExecContextStmtTx.
+func (mr *MockDatabaseItfMockRecorder) ExecContextStmtTx(ctx, tx, stmt any, args ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, tx, stmt}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContextStmtTx", reflect.TypeOf((*MockDatabaseItf)(nil).ExecContextStmtTx), varargs...)
+}
+
+// GetContextStmt mocks base method.
+func (m *MockDatabaseItf) GetContextStmt(ctx context.Context, stmt *sqlx.Stmt, dest any, args ...any) error {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, stmt, dest}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetContextStmt", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetContextStmt indicates an expected call of GetContextStmt.
+func (mr *MockDatabaseItfMockRecorder) GetContextStmt(ctx, stmt, dest any, args ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, stmt, dest}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContextStmt", reflect.TypeOf((*MockDatabaseItf)(nil).GetContextStmt), varargs...)
 }
 
 // PreparexContext mocks base method.
@@ -129,21 +127,21 @@ func (mr *MockDatabaseItfMockRecorder) PreparexContext(ctx, query any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreparexContext", reflect.TypeOf((*MockDatabaseItf)(nil).PreparexContext), ctx, query)
 }
 
-// SelectContext mocks base method.
-func (m *MockDatabaseItf) SelectContext(ctx context.Context, dest any, query string, args ...any) error {
+// SelectContextStmt mocks base method.
+func (m *MockDatabaseItf) SelectContextStmt(ctx context.Context, stmt *sqlx.Stmt, dest any, args ...any) error {
 	m.ctrl.T.Helper()
-	varargs := []any{ctx, dest, query}
+	varargs := []any{ctx, stmt, dest}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "SelectContext", varargs...)
+	ret := m.ctrl.Call(m, "SelectContextStmt", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SelectContext indicates an expected call of SelectContext.
-func (mr *MockDatabaseItfMockRecorder) SelectContext(ctx, dest, query any, args ...any) *gomock.Call {
+// SelectContextStmt indicates an expected call of SelectContextStmt.
+func (mr *MockDatabaseItfMockRecorder) SelectContextStmt(ctx, stmt, dest any, args ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, dest, query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SelectContext", reflect.TypeOf((*MockDatabaseItf)(nil).SelectContext), varargs...)
+	varargs := append([]any{ctx, stmt, dest}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SelectContextStmt", reflect.TypeOf((*MockDatabaseItf)(nil).SelectContextStmt), varargs...)
 }

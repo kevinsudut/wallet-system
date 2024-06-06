@@ -84,7 +84,7 @@ func (mr *MockLRUCacheItfMockRecorder) Get(key any) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockLRUCacheItf) Set(key, value string, duration time.Duration) {
+func (m *MockLRUCacheItf) Set(key string, value any, duration time.Duration) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Set", key, value, duration)
 }

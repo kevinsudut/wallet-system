@@ -8,13 +8,9 @@ import (
 )
 
 func (d domain) InsertUser(ctx context.Context, user User) (err error) {
-	result, err := d.stmts.insertUser.ExecContext(ctx, user.Id, user.Username)
+	err = d.db.ExecContextStmt(ctx, d.stmts.insertUser, user.Id, user.Username)
 	if err != nil {
 		return err
-	}
-
-	if row, err := result.RowsAffected(); err != nil || row <= 0 {
-		return fmt.Errorf("failed insert to database")
 	}
 
 	d.cache.Set(fmt.Sprintf(memcacheKeyGetUserById, user.Id), user, time.Minute*5)
@@ -28,7 +24,7 @@ func (d domain) GetUserById(ctx context.Context, id string) (resp User, err erro
 		var resp User
 		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserById, id), time.Minute*5, func() (interface{}, error) {
 			var user User
-			err := d.stmts.getUserById.GetContext(ctx, &user, id)
+			err := d.db.GetContextStmt(ctx, d.stmts.getUserById, &user, id)
 			if err != nil {
 				return user, err
 			}
@@ -59,7 +55,7 @@ func (d domain) GetUserByUsername(ctx context.Context, username string) (resp Us
 		var resp User
 		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, username), time.Minute*5, func() (interface{}, error) {
 			var user User
-			err := d.stmts.getUserByUsername.GetContext(ctx, &user, username)
+			err := d.db.GetContextStmt(ctx, d.stmts.getUserByUsername, &user, username)
 			if err != nil && err != sql.ErrNoRows {
 				return user, err
 			}

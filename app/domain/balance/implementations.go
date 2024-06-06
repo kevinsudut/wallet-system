@@ -20,9 +20,9 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 		var resp Balance
 		balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var balance Balance
-			err := d.stmts.getBalanceByUserId.GetContext(ctx, &balance, userId)
+			err := d.db.GetContextStmt(ctx, d.stmts.getBalanceByUserId, &balance, userId)
 			if err != nil && err != sql.ErrNoRows {
-				return "", err
+				return balance, err
 			}
 
 			return balance, nil
@@ -41,13 +41,9 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 }
 
 func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
-	result, err := tx.ExecContext(ctx, queryGrantBalanceByUserId, balance.UserId, balance.Amount)
+	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.grantBalanceByUserId, balance.UserId, balance.Amount)
 	if err != nil {
 		return err
-	}
-
-	if row, err := result.RowsAffected(); err != nil || row <= 0 {
-		return fmt.Errorf("failed update to database")
 	}
 
 	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
@@ -56,13 +52,9 @@ func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Ba
 }
 
 func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
-	result, err := tx.ExecContext(ctx, queryDeductBalanceByUserId, balance.Amount, balance.UserId)
+	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.deductBalanceByUserId, balance.Amount, balance.UserId)
 	if err != nil {
 		return err
-	}
-
-	if row, err := result.RowsAffected(); err != nil || row <= 0 {
-		return fmt.Errorf("failed update to database")
 	}
 
 	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
@@ -71,13 +63,9 @@ func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance B
 }
 
 func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) (err error) {
-	result, err := tx.ExecContext(ctx, queryInsertHistory, history.Id, history.UserId, history.TargetUserId, history.Amount, history.Type, history.Notes)
+	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.insertHistory, history.Id, history.UserId, history.TargetUserId, history.Amount, history.Type, history.Notes)
 	if err != nil {
 		return err
-	}
-
-	if row, err := result.RowsAffected(); err != nil || row <= 0 {
-		return fmt.Errorf("failed update to database")
 	}
 
 	err = d.updateHistorySummary(ctx, tx, HistorySummary{
@@ -96,13 +84,9 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 }
 
 func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySummary HistorySummary) (err error) {
-	result, err := tx.ExecContext(ctx, queryUpdateHistorySummaryById, historySummary.GetId(), historySummary.UserId, historySummary.TargetUserId, historySummary.Amount, historySummary.Type)
+	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.updateHistorySummaryById, historySummary.GetId(), historySummary.UserId, historySummary.TargetUserId, historySummary.Amount, historySummary.Type)
 	if err != nil {
 		return err
-	}
-
-	if row, err := result.RowsAffected(); err != nil || row <= 0 {
-		return fmt.Errorf("failed update to database")
 	}
 
 	d.cache.Delete(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, historySummary.UserId, historySummary.Type))
@@ -214,9 +198,9 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 		var resp []History
 		histories, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var history []History
-			err := d.stmts.getLatestHistoryByUserId.SelectContext(ctx, &history, userId)
+			err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
 			if err != nil {
-				return "", err
+				return history, err
 			}
 
 			return history, nil
@@ -239,9 +223,9 @@ func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId str
 		var resp []HistorySummary
 		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
 			var historySummary []HistorySummary
-			err := d.stmts.getHistorySummaryByUserIdAndType.SelectContext(ctx, &historySummary, userId, historyType)
+			err := d.db.SelectContextStmt(ctx, d.stmts.getHistorySummaryByUserIdAndType, &historySummary, userId, historyType)
 			if err != nil {
-				return "", err
+				return historySummary, err
 			}
 
 			return historySummary, nil
