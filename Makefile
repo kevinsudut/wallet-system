@@ -1,4 +1,4 @@
-.PHONY: init build run
+.PHONY: init build test run
 
 all: init build test run
 

@@ -18,6 +18,10 @@ func (r rdb) SetEx(ctx context.Context, key string, value interface{}, expiratio
 	return r.client.SetEx(ctx, key, value, expiration).Result()
 }
 
+func (r rdb) Delete(ctx context.Context, keys ...string) (int64, error) {
+	return r.client.Del(ctx, keys...).Result()
+}
+
 func (r rdb) Fetch(ctx context.Context, key string, expiration time.Duration, fetch func() (interface{}, error)) (string, error) {
 	resp, err := r.Get(ctx, key)
 	if err == nil {

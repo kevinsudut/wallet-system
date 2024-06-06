@@ -40,6 +40,26 @@ func (m *MockRedisItf) EXPECT() *MockRedisItfMockRecorder {
 	return m.recorder
 }
 
+// Delete mocks base method.
+func (m *MockRedisItf) Delete(ctx context.Context, keys ...string) (int64, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx}
+	for _, a := range keys {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Delete", varargs...)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockRedisItfMockRecorder) Delete(ctx any, keys ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx}, keys...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRedisItf)(nil).Delete), varargs...)
+}
+
 // Fetch mocks base method.
 func (m *MockRedisItf) Fetch(ctx context.Context, key string, expiration time.Duration, fetch func() (any, error)) (string, error) {
 	m.ctrl.T.Helper()

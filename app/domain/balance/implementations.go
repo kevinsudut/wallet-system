@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Balance, err error) {
@@ -19,13 +20,26 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 	balance, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetBalanceByUserId, userId), func() (interface{}, error) {
 		var resp Balance
 		balance, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
-			var balance Balance
-			err := d.db.GetContextStmt(ctx, d.stmts.getBalanceByUserId, &balance, userId)
-			if err != nil && err != sql.ErrNoRows {
-				return balance, err
+			var respRedis Balance
+			balanceStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetBalanceByUserId, userId), time.Duration(time.Minute*30), func() (interface{}, error) {
+				var balance Balance
+				err := d.db.GetContextStmt(ctx, d.stmts.getBalanceByUserId, &balance, userId)
+				if err != nil && err != sql.ErrNoRows {
+					return balance, err
+				}
+
+				return balance, nil
+			})
+			if err != nil {
+				return respRedis, err
 			}
 
-			return balance, nil
+			err = jsoniter.UnmarshalFromString(balanceStr, &respRedis)
+			if err != nil {
+				return respRedis, err
+			}
+
+			return respRedis, nil
 		})
 		if err != nil {
 			return resp, err
@@ -46,6 +60,11 @@ func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Ba
 		return err
 	}
 
+	_, err = d.redis.Delete(ctx, fmt.Sprintf(cacheKeyGetBalanceByUserId, balance.UserId))
+	if err != nil {
+		return err
+	}
+
 	d.cache.Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, balance.UserId))
 
 	return nil
@@ -53,6 +72,11 @@ func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Ba
 
 func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.deductBalanceByUserId, balance.Amount, balance.UserId)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.redis.Delete(ctx, fmt.Sprintf(cacheKeyGetBalanceByUserId, balance.UserId))
 	if err != nil {
 		return err
 	}
@@ -78,6 +102,11 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 		return err
 	}
 
+	_, err = d.redis.Delete(ctx, fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, history.UserId))
+	if err != nil {
+		return err
+	}
+
 	d.cache.Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, history.UserId))
 
 	return nil
@@ -85,6 +114,11 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 
 func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySummary HistorySummary) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.updateHistorySummaryById, historySummary.GetId(), historySummary.UserId, historySummary.TargetUserId, historySummary.Amount, historySummary.Type)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.redis.Delete(ctx, fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, historySummary.UserId, historySummary.Type))
 	if err != nil {
 		return err
 	}
@@ -197,13 +231,26 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
 		var resp []History
 		histories, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
-			var history []History
-			err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
+			var respRedis []HistorySummary
+			historiesStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Duration(time.Minute*30), func() (interface{}, error) {
+				var history []History
+				err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
+				if err != nil {
+					return history, err
+				}
+
+				return history, nil
+			})
 			if err != nil {
-				return history, err
+				return respRedis, err
 			}
 
-			return history, nil
+			err = jsoniter.UnmarshalFromString(historiesStr, &respRedis)
+			if err != nil {
+				return respRedis, err
+			}
+
+			return respRedis, nil
 		})
 		if err != nil {
 			return resp, err
@@ -222,13 +269,26 @@ func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId str
 	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId, historyType), func() (interface{}, error) {
 		var resp []HistorySummary
 		historySummaries, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
-			var historySummary []HistorySummary
-			err := d.db.SelectContextStmt(ctx, d.stmts.getHistorySummaryByUserIdAndType, &historySummary, userId, historyType)
+			var respRedis []HistorySummary
+			historySummariesStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Duration(time.Minute*30), func() (interface{}, error) {
+				var historySummary []HistorySummary
+				err := d.db.SelectContextStmt(ctx, d.stmts.getHistorySummaryByUserIdAndType, &historySummary, userId, historyType)
+				if err != nil {
+					return historySummary, err
+				}
+
+				return historySummary, nil
+			})
 			if err != nil {
-				return historySummary, err
+				return respRedis, err
 			}
 
-			return historySummary, nil
+			err = jsoniter.UnmarshalFromString(historySummariesStr, &respRedis)
+			if err != nil {
+				return respRedis, err
+			}
+
+			return respRedis, nil
 		})
 		if err != nil {
 			return resp, err

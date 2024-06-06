@@ -62,3 +62,15 @@ curl --location 'http://localhost:8000/top_transaction_per_user' \
 curl --location 'http://localhost:8000/top_users' \
 --header 'Authorization: Bearer ••••••'
 ```
+
+## Testing
+To run test, run the following command:
+```
+make test
+```
+
+## API Testing
+To run api test, run the following command:
+```
+make test_api
+```
