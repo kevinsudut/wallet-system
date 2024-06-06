@@ -13,6 +13,7 @@ import (
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 	lrucache "github.com/kevinsudut/wallet-system/pkg/lib/lru-cache"
+	"github.com/kevinsudut/wallet-system/pkg/lib/redis"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -22,15 +23,15 @@ var (
 
 func TestMain(m *testing.M) {
 	log.Init()
-	cache.Set(fmt.Sprintf(memcacheKeyGetUserById, "id"), User{
+	cache.Set(fmt.Sprintf(cacheKeyGetUserById, "id"), User{
 		Id:       "id",
 		Username: "username",
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(memcacheKeyGetUserByUsername, "username"), User{
+	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), User{
 		Id:       "id",
 		Username: "username",
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(memcacheKeyGetUserByUsername, "test"), User{}, time.Minute*5)
+	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "test"), User{}, time.Minute*5)
 	os.Exit(m.Run())
 }
 
@@ -38,10 +39,12 @@ func Test_domain_InsertUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -61,6 +64,7 @@ func Test_domain_InsertUser(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					insertUser: &sqlx.Stmt{},
@@ -77,11 +81,13 @@ func Test_domain_InsertUser(t *testing.T) {
 			mock: func() {
 				gomock.InOrder(
 					mockDatabase.EXPECT().ExecContextStmt(gomock.Any(), gomock.Any(), "id", "username").Return(nil),
-					mockCache.EXPECT().Set(fmt.Sprintf(memcacheKeyGetUserById, "id"), User{
+					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserById, "id"), gomock.Any(), time.Minute*30).Return("", nil),
+					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserByUsername, "username"), gomock.Any(), time.Minute*30).Return("", nil),
+					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserById, "id"), User{
 						Id:       "id",
 						Username: "username",
 					}, time.Minute*5),
-					mockCache.EXPECT().Set(fmt.Sprintf(memcacheKeyGetUserByUsername, "username"), User{
+					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), User{
 						Id:       "id",
 						Username: "username",
 					}, time.Minute*5),
@@ -89,9 +95,61 @@ func Test_domain_InsertUser(t *testing.T) {
 			},
 		},
 		{
+			name: "error set redis 1",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					insertUser: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				user: User{
+					Id:       "id",
+					Username: "username",
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().ExecContextStmt(gomock.Any(), gomock.Any(), "id", "username").Return(nil),
+					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserById, "id"), gomock.Any(), time.Minute*30).Return("", fmt.Errorf("foo")),
+				)
+			},
+		},
+		{
+			name: "error set redis 2",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					insertUser: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				user: User{
+					Id:       "id",
+					Username: "username",
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().ExecContextStmt(gomock.Any(), gomock.Any(), "id", "username").Return(nil),
+					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserById, "id"), gomock.Any(), time.Minute*30).Return("", nil),
+					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserByUsername, "username"), gomock.Any(), time.Minute*30).Return("", fmt.Errorf("foo")),
+				)
+			},
+		},
+		{
 			name: "error ExecContextStmt",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					insertUser: &sqlx.Stmt{},
@@ -116,6 +174,7 @@ func Test_domain_InsertUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,
@@ -173,8 +232,8 @@ func Test_domain_GetUserById(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockCache.EXPECT().Fetch(fmt.Sprintf(memcacheKeyGetUserById, "id"), time.Minute*5, gomock.Any()).Return(
-						cache.Get(fmt.Sprintf(memcacheKeyGetUserById, "id")), nil,
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetUserById, "id"), time.Minute*5, gomock.Any()).Return(
+						cache.Get(fmt.Sprintf(cacheKeyGetUserById, "id")), nil,
 					),
 				)
 			},
@@ -197,7 +256,7 @@ func Test_domain_GetUserById(t *testing.T) {
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
-					mockCache.EXPECT().Fetch(fmt.Sprintf(memcacheKeyGetUserById, "id"), time.Minute*5, gomock.Any()).Return(nil, fmt.Errorf("foo")),
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetUserById, "id"), time.Minute*5, gomock.Any()).Return(nil, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -227,10 +286,12 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -251,6 +312,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getUserById: &sqlx.Stmt{},
@@ -268,8 +330,8 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockCache.EXPECT().Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, "username"), time.Minute*5, gomock.Any()).Return(
-						cache.Get(fmt.Sprintf(memcacheKeyGetUserByUsername, "username")), nil,
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), time.Minute*5, gomock.Any()).Return(
+						cache.Get(fmt.Sprintf(cacheKeyGetUserByUsername, "username")), nil,
 					),
 				)
 			},
@@ -278,6 +340,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			name: "error no rows",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getUserById: &sqlx.Stmt{},
@@ -292,7 +355,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
-					mockCache.EXPECT().Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, "test"), time.Minute*5, gomock.Any()).Return(cache.Get(fmt.Sprintf(memcacheKeyGetUserByUsername, "test")), nil),
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetUserByUsername, "test"), time.Minute*5, gomock.Any()).Return(cache.Get(fmt.Sprintf(cacheKeyGetUserByUsername, "test")), nil),
 				)
 			},
 		},
@@ -300,6 +363,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			name: "error fetch",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getUserById: &sqlx.Stmt{},
@@ -314,7 +378,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
-					mockCache.EXPECT().Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, "username"), time.Minute*5, gomock.Any()).Return(nil, fmt.Errorf("foo")),
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), time.Minute*5, gomock.Any()).Return(nil, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -323,6 +387,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,

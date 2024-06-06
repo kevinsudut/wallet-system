@@ -7,6 +7,7 @@ import (
 	usecasebalance "github.com/kevinsudut/wallet-system/app/usecase/balance"
 	usecasetransaction "github.com/kevinsudut/wallet-system/app/usecase/transaction"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
+	"github.com/kevinsudut/wallet-system/pkg/lib/redis"
 	"github.com/kevinsudut/wallet-system/pkg/lib/token"
 )
 
@@ -16,8 +17,8 @@ type usecase struct {
 	Transaction usecasetransaction.UsecaseItf
 }
 
-func Init(token token.TokenItf, db database.DatabaseItf) usecase {
-	domainAuth := domainauth.Init(db)
+func Init(token token.TokenItf, db database.DatabaseItf, redis redis.RedisItf) usecase {
+	domainAuth := domainauth.Init(db, redis)
 	domainBalance := domainbalance.Init(db)
 
 	return usecase{

@@ -18,7 +18,7 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 
 	balance, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetBalanceByUserId, userId), func() (interface{}, error) {
 		var resp Balance
-		balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
+		balance, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var balance Balance
 			err := d.db.GetContextStmt(ctx, d.stmts.getBalanceByUserId, &balance, userId)
 			if err != nil && err != sql.ErrNoRows {
@@ -46,7 +46,7 @@ func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Ba
 		return err
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
+	d.cache.Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, balance.UserId))
 
 	return nil
 }
@@ -57,7 +57,7 @@ func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance B
 		return err
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetBalanceByUserId, balance.UserId))
+	d.cache.Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, balance.UserId))
 
 	return nil
 }
@@ -78,7 +78,7 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 		return err
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, history.UserId))
+	d.cache.Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, history.UserId))
 
 	return nil
 }
@@ -89,7 +89,7 @@ func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySum
 		return err
 	}
 
-	d.cache.Delete(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, historySummary.UserId, historySummary.Type))
+	d.cache.Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, historySummary.UserId, historySummary.Type))
 
 	return nil
 }
@@ -196,7 +196,7 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 
 	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
 		var resp []History
-		histories, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
+		histories, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var history []History
 			err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
 			if err != nil {
@@ -221,7 +221,7 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []HistorySummary, err error) {
 	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId, historyType), func() (interface{}, error) {
 		var resp []HistorySummary
-		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
+		historySummaries, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
 			var historySummary []HistorySummary
 			err := d.db.SelectContextStmt(ctx, d.stmts.getHistorySummaryByUserIdAndType, &historySummary, userId, historyType)
 			if err != nil {

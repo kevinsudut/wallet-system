@@ -1,8 +1,8 @@
 package domainauth
 
 const (
-	memcacheKeyGetUserById       = "domain:user:id:%s"
-	memcacheKeyGetUserByUsername = "domain:user:username:%s"
+	cacheKeyGetUserById       = "domain:user:id:%s"
+	cacheKeyGetUserByUsername = "domain:user:username:%s"
 )
 
 const (

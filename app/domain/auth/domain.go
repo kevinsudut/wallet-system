@@ -8,10 +8,12 @@ import (
 	"github.com/kevinsudut/wallet-system/pkg/helper/singleflight"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	lrucache "github.com/kevinsudut/wallet-system/pkg/lib/lru-cache"
+	"github.com/kevinsudut/wallet-system/pkg/lib/redis"
 )
 
 type domain struct {
 	db           database.DatabaseItf
+	redis        redis.RedisItf
 	cache        lrucache.LRUCacheItf
 	stmts        databaseStmts
 	singleflight singleflight.SingleFlightItf
@@ -23,12 +25,13 @@ type databaseStmts struct {
 	getUserByUsername *sqlx.Stmt
 }
 
-func Init(db database.DatabaseItf) DomainItf {
+func Init(db database.DatabaseItf, redis redis.RedisItf) DomainItf {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	return &domain{
 		db:    db,
+		redis: redis,
 		cache: lrucache.Init(),
 		stmts: databaseStmts{
 			insertUser:        db.PreparexContext(ctx, queryInsertUser),

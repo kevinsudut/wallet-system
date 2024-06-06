@@ -1,9 +1,9 @@
 package domainbalance
 
 const (
-	memcacheKeyGetBalanceByUserId               = "domain:balance:user_id:%s"
-	memcacheKeyGetLatestHistoryByUserId         = "domain:balance:history:user_id:%s"
-	memcacheKeyGetHistorySummaryByUserIdAndType = "domain:balance:history_summary:user_id:%s:type:%d"
+	cacheKeyGetBalanceByUserId               = "domain:balance:user_id:%s"
+	cacheKeyGetLatestHistoryByUserId         = "domain:balance:history:user_id:%s"
+	cacheKeyGetHistorySummaryByUserIdAndType = "domain:balance:history_summary:user_id:%s:type:%d"
 )
 
 const (

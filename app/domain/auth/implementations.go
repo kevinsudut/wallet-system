@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 func (d domain) InsertUser(ctx context.Context, user User) (err error) {
@@ -13,8 +15,23 @@ func (d domain) InsertUser(ctx context.Context, user User) (err error) {
 		return err
 	}
 
-	d.cache.Set(fmt.Sprintf(memcacheKeyGetUserById, user.Id), user, time.Minute*5)
-	d.cache.Set(fmt.Sprintf(memcacheKeyGetUserByUsername, user.Username), user, time.Minute*5)
+	json, err := jsoniter.MarshalToString(user)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.redis.SetEx(ctx, fmt.Sprintf(cacheKeyGetUserById, user.Id), json, time.Minute*30)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.redis.SetEx(ctx, fmt.Sprintf(cacheKeyGetUserByUsername, user.Username), json, time.Minute*30)
+	if err != nil {
+		return err
+	}
+
+	d.cache.Set(fmt.Sprintf(cacheKeyGetUserById, user.Id), user, time.Minute*5)
+	d.cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, user.Username), user, time.Minute*5)
 
 	return nil
 }
@@ -22,14 +39,27 @@ func (d domain) InsertUser(ctx context.Context, user User) (err error) {
 func (d domain) GetUserById(ctx context.Context, id string) (resp User, err error) {
 	user, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetUserById, id), func() (interface{}, error) {
 		var resp User
-		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserById, id), time.Minute*5, func() (interface{}, error) {
-			var user User
-			err := d.db.GetContextStmt(ctx, d.stmts.getUserById, &user, id)
+		user, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetUserById, id), time.Minute*5, func() (interface{}, error) {
+			var respRedis User
+			userStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetUserById, id), time.Duration(time.Minute*30), func() (interface{}, error) {
+				var user User
+				err := d.db.GetContextStmt(ctx, d.stmts.getUserById, &user, id)
+				if err != nil {
+					return user, err
+				}
+
+				return user, nil
+			})
 			if err != nil {
-				return user, err
+				return respRedis, err
 			}
 
-			return user, nil
+			err = jsoniter.UnmarshalFromString(userStr, &respRedis)
+			if err != nil {
+				return respRedis, err
+			}
+
+			return respRedis, nil
 		})
 		if err != nil {
 			return resp, err
@@ -53,14 +83,27 @@ func (d domain) GetUserByUsername(ctx context.Context, username string) (resp Us
 
 	user, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetUserById, username), func() (interface{}, error) {
 		var resp User
-		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, username), time.Minute*5, func() (interface{}, error) {
-			var user User
-			err := d.db.GetContextStmt(ctx, d.stmts.getUserByUsername, &user, username)
-			if err != nil && err != sql.ErrNoRows {
-				return user, err
+		user, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetUserByUsername, username), time.Minute*5, func() (interface{}, error) {
+			var respRedis User
+			userStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetUserByUsername, username), time.Duration(time.Minute*30), func() (interface{}, error) {
+				var user User
+				err := d.db.GetContextStmt(ctx, d.stmts.getUserByUsername, &user, username)
+				if err != nil && err != sql.ErrNoRows {
+					return user, err
+				}
+
+				return user, nil
+			})
+			if err != nil {
+				return respRedis, err
 			}
 
-			return user, nil
+			err = jsoniter.UnmarshalFromString(userStr, &respRedis)
+			if err != nil {
+				return respRedis, err
+			}
+
+			return respRedis, nil
 		})
 		if err != nil {
 			return resp, err

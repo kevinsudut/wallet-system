@@ -7,6 +7,7 @@ import (
 	handlertransaction "github.com/kevinsudut/wallet-system/app/handler/transaction"
 	"github.com/kevinsudut/wallet-system/app/usecase"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
+	"github.com/kevinsudut/wallet-system/pkg/lib/redis"
 	"github.com/kevinsudut/wallet-system/pkg/lib/token"
 )
 
@@ -15,8 +16,8 @@ type handler struct {
 	token    token.TokenItf
 }
 
-func Init(token token.TokenItf, db database.DatabaseItf) handlertemplate.HandlerItf {
-	usecase := usecase.Init(token, db)
+func Init(token token.TokenItf, db database.DatabaseItf, redis redis.RedisItf) handlertemplate.HandlerItf {
+	usecase := usecase.Init(token, db, redis)
 
 	return &handler{
 		token: token,

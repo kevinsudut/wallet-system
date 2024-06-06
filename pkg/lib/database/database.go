@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"os"
 
 	"github.com/jmoiron/sqlx"
@@ -13,6 +14,11 @@ type database struct {
 
 func Init() (DatabaseItf, error) {
 	conn, err := sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.PingContext(context.Background())
 	if err != nil {
 		return nil, err
 	}

@@ -30,4 +30,5 @@ generate_mocks:
 	mockgen -source=pkg/helper/singleflight/interfaces.go -destination=pkg/helper/singleflight/mock.go -package=singleflight
 	mockgen -source=pkg/lib/database/interfaces.go -destination=pkg/lib/database/mock.go -package=database
 	mockgen -source=pkg/lib/lru-cache/interfaces.go -destination=pkg/lib/lru-cache/mock.go -package=lrucache
+	mockgen -source=pkg/lib/redis/interfaces.go -destination=pkg/lib/redis/mock.go -package=redis
 	mockgen -source=pkg/lib/token/interfaces.go -destination=pkg/lib/token/mock.go -package=token
