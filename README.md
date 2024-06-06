@@ -17,7 +17,7 @@ To start working, execute
 ```
 make
 ```
-The backend system will running on http://localhost:8000
+The wallet system will running on http://localhost:8000
 
 ## List Available API
 1. Register new user (http://localhost:8000/create_user)
