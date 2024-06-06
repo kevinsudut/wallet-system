@@ -2,6 +2,7 @@ package domainbalance
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 	lrucache "github.com/kevinsudut/wallet-system/pkg/lib/lru-cache"
+	"github.com/kevinsudut/wallet-system/pkg/lib/redis"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -22,6 +24,7 @@ var (
 
 func TestMain(m *testing.M) {
 	log.Init()
+	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "test"), Balance{}, time.Minute*5)
 	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id"), Balance{
 		UserId: "id",
 		Amount: 10,
@@ -49,10 +52,12 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -73,6 +78,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getBalanceByUserId: &sqlx.Stmt{},
@@ -100,6 +106,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 			name: "error fetch",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getBalanceByUserId: &sqlx.Stmt{},
@@ -118,11 +125,37 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 				)
 			},
 		},
+		{
+			name: "error not found",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					getBalanceByUserId: &sqlx.Stmt{},
+				},
+				singleflight: &singleflight.MockSingleFlight{},
+			},
+			args: args{
+				ctx:    context.Background(),
+				userId: "test",
+			},
+			wantResp: Balance{},
+			wantErr:  true,
+			mock: func() {
+				gomock.InOrder(
+					mockCache.EXPECT().Fetch(fmt.Sprintf(cacheKeyGetBalanceByUserId, "test"), time.Minute*5, gomock.Any()).Return(
+						cache.Get(fmt.Sprintf(cacheKeyGetBalanceByUserId, "test")), nil,
+					),
+				)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,
@@ -141,8 +174,15 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 }
 
 func Test_domain_GrantBalanceByUserId(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
+	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
+
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -156,17 +196,296 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		mock    func()
 	}{
-		// TODO: Add test cases.
+		{
+			name: "success",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: false,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+
+					// updateHistorySummary
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1)).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1)).Return(false),
+
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id")).Return(false),
+					mockDatabase.EXPECT().Commit(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error insertHistory.Delete redis",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+
+					// updateHistorySummary
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1)).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1)).Return(false),
+
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id")).Return(int64(0), fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error updateHistorySummary.Delete redis",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+
+					// updateHistorySummary
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1)).Return(int64(0), fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error updateHistorySummary.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+
+					// updateHistorySummary
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error insertHistory.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error grantBalanceByUserId.Delete redis",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error grantBalanceByUserId.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error Begin",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				balance: Balance{
+					UserId: "id",
+					Amount: 10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, fmt.Errorf("foo")),
+				)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,
 			}
+			tt.mock()
 			if err := d.GrantBalanceByUserId(tt.args.ctx, tt.args.balance); (err != nil) != tt.wantErr {
 				t.Errorf("domain.GrantBalanceByUserId() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -175,8 +494,15 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 }
 
 func Test_domain_DisburmentBalance(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
+	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
+
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -190,17 +516,288 @@ func Test_domain_DisburmentBalance(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		mock    func()
 	}{
-		// TODO: Add test cases.
+		{
+			name: "success",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: false,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(false),
+
+					// deductBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "toid", 1)).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "toid", 1)).Return(false),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "toid")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 2)).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 2)).Return(false),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id")).Return(false),
+					mockDatabase.EXPECT().Commit(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error insertHistory.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(false),
+
+					// deductBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "toid", 1)).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "toid", 1)).Return(false),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "toid")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error insertHistory.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(false),
+
+					// deductBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(false),
+
+					// insertHistory
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error deductBalanceByUserId.Delete redis",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(false),
+
+					// deductBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "id")).Return(int64(0), fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error deductBalanceByUserId.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+					mockRedis.EXPECT().Delete(gomock.Any(), fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(int64(0), nil),
+					mockCache.EXPECT().Delete(fmt.Sprintf(cacheKeyGetBalanceByUserId, "toid")).Return(false),
+
+					// deductBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error grantBalanceByUserId.ExecContextStmtTx db",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, nil),
+					// grantBalanceByUserId
+					mockDatabase.EXPECT().ExecContextStmtTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
+					mockDatabase.EXPECT().Rollback(gomock.Any()).Return(nil),
+				)
+			},
+		},
+		{
+			name: "error Begin",
+			fields: fields{
+				db:    mockDatabase,
+				redis: mockRedis,
+				cache: mockCache,
+				stmts: databaseStmts{
+					grantBalanceByUserId:     &sqlx.Stmt{},
+					insertHistory:            &sqlx.Stmt{},
+					updateHistorySummaryById: &sqlx.Stmt{},
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: DisburmentBalanceRequest{
+					UserId:   "id",
+					ToUserId: "toid",
+					Amount:   10,
+				},
+			},
+			wantErr: true,
+			mock: func() {
+				gomock.InOrder(
+					mockDatabase.EXPECT().Begin().Return(&sql.Tx{}, fmt.Errorf("foo")),
+				)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,
 			}
+			tt.mock()
 			if err := d.DisburmentBalance(tt.args.ctx, tt.args.req); (err != nil) != tt.wantErr {
 				t.Errorf("domain.DisburmentBalance() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -212,10 +809,12 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -236,6 +835,7 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getLatestHistoryByUserId: &sqlx.Stmt{},
@@ -267,6 +867,7 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 			name: "error fetch",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getLatestHistoryByUserId: &sqlx.Stmt{},
@@ -290,6 +891,7 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,
@@ -311,10 +913,12 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.RedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -336,6 +940,7 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getHistorySummaryByUserIdAndType: &sqlx.Stmt{},
@@ -368,6 +973,7 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 			name: "error fetch",
 			fields: fields{
 				db:    mockDatabase,
+				redis: mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getHistorySummaryByUserIdAndType: &sqlx.Stmt{},
@@ -392,6 +998,7 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,

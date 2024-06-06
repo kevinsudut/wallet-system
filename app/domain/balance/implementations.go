@@ -136,9 +136,9 @@ func (d domain) GrantBalanceByUserId(ctx context.Context, balance Balance) (err 
 
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			d.db.Commit(tx)
 		} else {
-			tx.Rollback()
+			d.db.Rollback(tx)
 		}
 	}()
 
@@ -170,9 +170,9 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			d.db.Commit(tx)
 		} else {
-			tx.Rollback()
+			d.db.Rollback(tx)
 		}
 	}()
 

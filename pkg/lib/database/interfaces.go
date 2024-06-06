@@ -9,6 +9,9 @@ import (
 
 type DatabaseItf interface {
 	Begin() (*sql.Tx, error)
+	Commit(tx *sql.Tx) error
+	Rollback(tx *sql.Tx) error
+
 	PreparexContext(ctx context.Context, query string) *sqlx.Stmt
 
 	GetContextStmt(ctx context.Context, stmt *sqlx.Stmt, dest interface{}, args ...interface{}) error

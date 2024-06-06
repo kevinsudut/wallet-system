@@ -13,6 +13,14 @@ func (db database) Begin() (*sql.Tx, error) {
 	return db.conn.Begin()
 }
 
+func (db database) Commit(tx *sql.Tx) error {
+	return tx.Commit()
+}
+
+func (db database) Rollback(tx *sql.Tx) error {
+	return tx.Rollback()
+}
+
 func (db database) PreparexContext(ctx context.Context, query string) *sqlx.Stmt {
 	stmt, err := db.conn.PreparexContext(ctx, query)
 	if err != nil {

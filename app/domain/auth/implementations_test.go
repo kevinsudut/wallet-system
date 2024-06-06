@@ -191,10 +191,12 @@ func Test_domain_GetUserById(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDatabase := database.NewMockDatabaseItf(ctrl)
+	mockRedis := redis.NewMockRedisItf(ctrl)
 	mockCache := lrucache.NewMockLRUCacheItf(ctrl)
 
 	type fields struct {
 		db           database.DatabaseItf
+		redis        redis.MockRedisItf
 		cache        lrucache.LRUCacheItf
 		stmts        databaseStmts
 		singleflight singleflight.SingleFlightItf
@@ -215,6 +217,7 @@ func Test_domain_GetUserById(t *testing.T) {
 			name: "success",
 			fields: fields{
 				db:    mockDatabase,
+				redis: *mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getUserById: &sqlx.Stmt{},
@@ -242,6 +245,7 @@ func Test_domain_GetUserById(t *testing.T) {
 			name: "error fetch",
 			fields: fields{
 				db:    mockDatabase,
+				redis: *mockRedis,
 				cache: mockCache,
 				stmts: databaseStmts{
 					getUserById: &sqlx.Stmt{},
@@ -265,6 +269,7 @@ func Test_domain_GetUserById(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := domain{
 				db:           tt.fields.db,
+				redis:        &tt.fields.redis,
 				cache:        tt.fields.cache,
 				stmts:        tt.fields.stmts,
 				singleflight: tt.fields.singleflight,

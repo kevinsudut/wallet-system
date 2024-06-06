@@ -56,6 +56,20 @@ func (mr *MockDatabaseItfMockRecorder) Begin() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockDatabaseItf)(nil).Begin))
 }
 
+// Commit mocks base method.
+func (m *MockDatabaseItf) Commit(tx *sql.Tx) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Commit", tx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Commit indicates an expected call of Commit.
+func (mr *MockDatabaseItfMockRecorder) Commit(tx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockDatabaseItf)(nil).Commit), tx)
+}
+
 // ExecContextStmt mocks base method.
 func (m *MockDatabaseItf) ExecContextStmt(ctx context.Context, stmt *sqlx.Stmt, args ...any) error {
 	m.ctrl.T.Helper()
@@ -125,6 +139,20 @@ func (m *MockDatabaseItf) PreparexContext(ctx context.Context, query string) *sq
 func (mr *MockDatabaseItfMockRecorder) PreparexContext(ctx, query any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreparexContext", reflect.TypeOf((*MockDatabaseItf)(nil).PreparexContext), ctx, query)
+}
+
+// Rollback mocks base method.
+func (m *MockDatabaseItf) Rollback(tx *sql.Tx) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rollback", tx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rollback indicates an expected call of Rollback.
+func (mr *MockDatabaseItfMockRecorder) Rollback(tx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockDatabaseItf)(nil).Rollback), tx)
 }
 
 // SelectContextStmt mocks base method.
