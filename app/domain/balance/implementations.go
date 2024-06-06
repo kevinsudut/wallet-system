@@ -151,7 +151,7 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 	}
 
 	err = d.deductBalanceByUserId(ctx, tx, Balance{
-		UserId: req.ToUserId,
+		UserId: req.UserId,
 		Amount: req.Amount,
 	})
 	if err != nil {
@@ -173,10 +173,10 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 	err = d.insertHistory(ctx, tx, History{
 		Id:           uuid.NewString(),
 		UserId:       req.UserId,
-		TargetUserId: req.UserId,
+		TargetUserId: req.ToUserId,
 		Amount:       req.Amount,
 		Type:         int(DEBIT),
-		Notes:        fmt.Sprintf("Transfer money to %s", req.UserId),
+		Notes:        fmt.Sprintf("Transfer money to %s", req.ToUserId),
 	})
 	if err != nil {
 		return err

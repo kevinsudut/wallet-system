@@ -14,6 +14,10 @@ test:
 	go clean -testcache
 	go test -short -coverprofile coverage.out -short -v ./...
 
+test_api:
+	go clean -testcache
+	go test ./test/...
+
 run:
 	docker compose up --build -d
 

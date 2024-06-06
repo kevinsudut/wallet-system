@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -22,7 +21,6 @@ func (r rdb) SetEx(ctx context.Context, key string, value interface{}, expiratio
 func (r rdb) Fetch(ctx context.Context, key string, expiration time.Duration, fetch func() (interface{}, error)) (string, error) {
 	resp, err := r.Get(ctx, key)
 	if err == nil {
-		fmt.Println("GET FROM REDIS", key)
 		return resp, nil
 	} else if !errors.Is(err, redis.Nil) {
 		log.Errorln("Redis.Fetch.Get", key, err)
@@ -42,8 +40,6 @@ func (r rdb) Fetch(ctx context.Context, key string, expiration time.Duration, fe
 	if err != nil {
 		log.Errorln("Redis.Fetch.SetEx", key, err)
 	}
-
-	fmt.Println("SET TO REDIS", key)
 
 	return json, nil
 }
