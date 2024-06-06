@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"sync"
 
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
@@ -22,20 +23,46 @@ func (u usecase) ListOverallTopTransactingUsersByValue(ctx context.Context, req 
 			}, err
 		}
 
+		var wg sync.WaitGroup
+		goroutineSem := make(chan struct{}, 5)
+		errors := make(chan error, len(historySummaries))
+
 		resp.Data = make([]ListOverallTopTransactingUsersByValue, len(historySummaries))
 		for idx, historySummary := range historySummaries {
-			user, err := u.auth.GetUserById(ctx, historySummary.TargetUserId)
-			if err != nil {
-				log.Errorln("ListOverallTopTransactingUsersByValue.GetUserById", err)
-				return ListOverallTopTransactingUsersByValueResponse{
-					Code: http.StatusUnauthorized,
-				}, err
-			}
+			wg.Add(1)
 
-			resp.Data[idx] = ListOverallTopTransactingUsersByValue{
-				Username:        user.Username,
-				TransactedValue: historySummary.Amount,
-			}
+			go func(idx int, historySummary domainbalance.HistorySummary) {
+				goroutineSem <- struct{}{}
+				defer func() {
+					<-goroutineSem
+					wg.Done()
+				}()
+
+				user, err := u.auth.GetUserById(ctx, historySummary.TargetUserId)
+				if err != nil {
+					errors <- err
+					log.Errorln("ListOverallTopTransactingUsersByValue.GetUserById", err)
+					return
+				}
+
+				resp.Data[idx] = ListOverallTopTransactingUsersByValue{
+					Username:        user.Username,
+					TransactedValue: historySummary.Amount,
+				}
+			}(idx, historySummary)
+		}
+
+		wg.Wait()
+
+		defer func() {
+			close(goroutineSem)
+			close(errors)
+		}()
+
+		if len(errors) > 0 {
+			return ListOverallTopTransactingUsersByValueResponse{
+				Code: http.StatusUnauthorized,
+			}, fmt.Errorf("goroutine error")
 		}
 
 		resp.Code = http.StatusOK
@@ -65,20 +92,47 @@ func (u usecase) TopTransactionsForUser(ctx context.Context, req TopTransactions
 			return histories[i].Amount > histories[j].Amount
 		})
 
+		var wg sync.WaitGroup
+		goroutineSem := make(chan struct{}, 5)
+		errors := make(chan error, len(histories))
+
 		resp.Data = make([]TopTransactionsForUser, len(histories))
 		for idx, history := range histories {
-			user, err := u.auth.GetUserById(ctx, history.TargetUserId)
-			if err != nil {
-				log.Errorln("TopTransactionsForUser.GetUserById", err)
-				return TopTransactionsForUserResponse{
-					Code: http.StatusUnauthorized,
-				}, err
-			}
+			wg.Add(1)
 
-			resp.Data[idx] = TopTransactionsForUser{
-				Username: user.Username,
-				Amount:   history.Amount,
-			}
+			go func(idx int, history domainbalance.History) {
+				goroutineSem <- struct{}{}
+				defer func() {
+					<-goroutineSem
+					wg.Done()
+				}()
+
+				user, err := u.auth.GetUserById(ctx, history.TargetUserId)
+				if err != nil {
+					errors <- err
+					log.Errorln("TopTransactionsForUser.GetUserById", err)
+					return
+				}
+
+				resp.Data[idx] = TopTransactionsForUser{
+					Username: user.Username,
+					Amount:   history.Amount,
+				}
+			}(idx, history)
+
+		}
+
+		wg.Wait()
+
+		defer func() {
+			close(goroutineSem)
+			close(errors)
+		}()
+
+		if len(errors) > 0 {
+			return TopTransactionsForUserResponse{
+				Code: http.StatusUnauthorized,
+			}, fmt.Errorf("goroutine error")
 		}
 
 		resp.Code = http.StatusOK

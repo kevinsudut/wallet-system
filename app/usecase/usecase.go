@@ -19,7 +19,7 @@ type usecase struct {
 
 func Init(token token.TokenItf, db database.DatabaseItf, redis redis.RedisItf) usecase {
 	domainAuth := domainauth.Init(db, redis)
-	domainBalance := domainbalance.Init(db)
+	domainBalance := domainbalance.Init(db, redis)
 
 	return usecase{
 		Auth:        usecaseauth.Init(domainAuth, token),
