@@ -55,10 +55,10 @@ func (mr *MockLRUCacheItfMockRecorder) Delete(key any) *gomock.Call {
 }
 
 // Fetch mocks base method.
-func (m *MockLRUCacheItf) Fetch(key string, duration time.Duration, fetch func() (string, error)) (*ccache.Item[string], error) {
+func (m *MockLRUCacheItf) Fetch(key string, duration time.Duration, fetch func() (any, error)) (*ccache.Item[any], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Fetch", key, duration, fetch)
-	ret0, _ := ret[0].(*ccache.Item[string])
+	ret0, _ := ret[0].(*ccache.Item[any])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -70,10 +70,10 @@ func (mr *MockLRUCacheItfMockRecorder) Fetch(key, duration, fetch any) *gomock.C
 }
 
 // Get mocks base method.
-func (m *MockLRUCacheItf) Get(key string) *ccache.Item[string] {
+func (m *MockLRUCacheItf) Get(key string) *ccache.Item[any] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", key)
-	ret0, _ := ret[0].(*ccache.Item[string])
+	ret0, _ := ret[0].(*ccache.Item[any])
 	return ret0
 }
 

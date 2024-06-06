@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 func (d domain) InsertUser(ctx context.Context, user User) (err error) {
@@ -19,11 +17,8 @@ func (d domain) InsertUser(ctx context.Context, user User) (err error) {
 		return fmt.Errorf("failed insert to database")
 	}
 
-	userStr, err := jsoniter.MarshalToString(user)
-	if err == nil {
-		d.cache.Set(fmt.Sprintf(memcacheKeyGetUserById, user.Id), userStr, time.Minute*5)
-		d.cache.Set(fmt.Sprintf(memcacheKeyGetUserByUsername, user.Username), userStr, time.Minute*5)
-	}
+	d.cache.Set(fmt.Sprintf(memcacheKeyGetUserById, user.Id), user, time.Minute*5)
+	d.cache.Set(fmt.Sprintf(memcacheKeyGetUserByUsername, user.Username), user, time.Minute*5)
 
 	return nil
 }
@@ -31,25 +26,20 @@ func (d domain) InsertUser(ctx context.Context, user User) (err error) {
 func (d domain) GetUserById(ctx context.Context, id string) (resp User, err error) {
 	user, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetUserById, id), func() (interface{}, error) {
 		var resp User
-		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserById, id), time.Minute*5, func() (string, error) {
+		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserById, id), time.Minute*5, func() (interface{}, error) {
 			var user User
 			err := d.stmts.getUserById.GetContext(ctx, &user, id)
 			if err != nil {
-				return "", err
+				return user, err
 			}
 
-			return jsoniter.MarshalToString(user)
+			return user, nil
 		})
 		if err != nil {
 			return resp, err
 		}
 
-		err = jsoniter.UnmarshalFromString(user.Value(), &resp)
-		if err != nil {
-			return resp, err
-		}
-
-		return resp, nil
+		return user.Value().(User), nil
 	})
 	if err != nil {
 		return resp, err
@@ -67,25 +57,20 @@ func (d domain) GetUserByUsername(ctx context.Context, username string) (resp Us
 
 	user, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetUserById, username), func() (interface{}, error) {
 		var resp User
-		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, username), time.Minute*5, func() (string, error) {
+		user, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetUserByUsername, username), time.Minute*5, func() (interface{}, error) {
 			var user User
 			err := d.stmts.getUserByUsername.GetContext(ctx, &user, username)
 			if err != nil && err != sql.ErrNoRows {
-				return "", err
+				return user, err
 			}
 
-			return jsoniter.MarshalToString(user)
+			return user, nil
 		})
 		if err != nil {
 			return resp, err
 		}
 
-		err = jsoniter.UnmarshalFromString(user.Value(), &resp)
-		if err != nil {
-			return resp, err
-		}
-
-		return resp, nil
+		return user.Value().(User), nil
 	})
 	if err != nil {
 		return resp, err

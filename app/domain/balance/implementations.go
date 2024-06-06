@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Balance, err error) {
@@ -19,25 +18,20 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 
 	balance, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetBalanceByUserId, userId), func() (interface{}, error) {
 		var resp Balance
-		balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (string, error) {
+		balance, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var balance Balance
 			err := d.stmts.getBalanceByUserId.GetContext(ctx, &balance, userId)
 			if err != nil && err != sql.ErrNoRows {
 				return "", err
 			}
 
-			return jsoniter.MarshalToString(balance)
+			return balance, nil
 		})
 		if err != nil {
 			return resp, err
 		}
 
-		err = jsoniter.UnmarshalFromString(balance.Value(), &resp)
-		if err != nil {
-			return resp, err
-		}
-
-		return resp, nil
+		return balance.Value().(Balance), nil
 	})
 	if err != nil {
 		return resp, err
@@ -218,25 +212,20 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 
 	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
 		var resp []History
-		histories, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (string, error) {
+		histories, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
 			var history []History
 			err := d.stmts.getLatestHistoryByUserId.SelectContext(ctx, &history, userId)
 			if err != nil {
 				return "", err
 			}
 
-			return jsoniter.MarshalToString(history)
+			return history, nil
 		})
 		if err != nil {
 			return resp, err
 		}
 
-		err = jsoniter.UnmarshalFromString(histories.Value(), &resp)
-		if err != nil {
-			return resp, err
-		}
-
-		return resp, nil
+		return histories.Value().([]History), nil
 	})
 	if err != nil {
 		return resp, err
@@ -248,25 +237,20 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []HistorySummary, err error) {
 	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId, historyType), func() (interface{}, error) {
 		var resp []HistorySummary
-		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (string, error) {
+		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
 			var historySummary []HistorySummary
 			err := d.stmts.getHistorySummaryByUserIdAndType.SelectContext(ctx, &historySummary, userId, historyType)
 			if err != nil {
 				return "", err
 			}
 
-			return jsoniter.MarshalToString(historySummary)
+			return historySummary, nil
 		})
 		if err != nil {
 			return resp, err
 		}
 
-		err = jsoniter.UnmarshalFromString(historySummaries.Value(), &resp)
-		if err != nil {
-			return resp, err
-		}
-
-		return resp, nil
+		return historySummaries.Value().([]HistorySummary), nil
 	})
 	if err != nil {
 		return resp, err

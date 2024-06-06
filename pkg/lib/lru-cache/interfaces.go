@@ -7,8 +7,8 @@ import (
 )
 
 type LRUCacheItf interface {
-	Get(key string) *ccache.Item[string]
-	Set(key string, value string, duration time.Duration)
+	Get(key string) *ccache.Item[interface{}]
+	Set(key string, value interface{}, duration time.Duration)
 	Delete(key string) bool
-	Fetch(key string, duration time.Duration, fetch func() (string, error)) (*ccache.Item[string], error)
+	Fetch(key string, duration time.Duration, fetch func() (interface{}, error)) (*ccache.Item[interface{}], error)
 }
