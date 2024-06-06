@@ -119,7 +119,6 @@ func (u usecase) TopTransactionsForUser(ctx context.Context, req TopTransactions
 					Amount:   history.Amount,
 				}
 			}(idx, history)
-
 		}
 
 		wg.Wait()

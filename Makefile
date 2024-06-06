@@ -16,7 +16,7 @@ test:
 
 test_api:
 	go clean -testcache
-	go test ./test/...
+	go test -v ./test/...
 
 run:
 	docker compose up --build -d

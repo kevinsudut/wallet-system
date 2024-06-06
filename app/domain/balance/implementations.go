@@ -187,7 +187,7 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 
 func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (resp []History, err error) {
 	defer func() {
-		if err != nil {
+		if err == nil {
 			for i := range resp {
 				resp[i].NormalizeAmount()
 			}
