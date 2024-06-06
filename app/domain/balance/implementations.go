@@ -231,7 +231,7 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
 		var resp []History
 		histories, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
-			var respRedis []HistorySummary
+			var respRedis []History
 			historiesStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Duration(time.Minute*30), func() (interface{}, error) {
 				var history []History
 				err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
