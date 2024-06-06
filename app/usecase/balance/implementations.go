@@ -54,7 +54,7 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 		log.Errorln("TransferBalance.GetBalanceByUserId", err)
 		return TransferBalanceResponse{
 			Code: http.StatusBadRequest,
-		}, nil
+		}, err
 	}
 
 	if balance.Amount-req.Amount < 0 {
@@ -68,7 +68,7 @@ func (u usecase) TransferBalance(ctx context.Context, req TransferBalanceRequest
 		log.Errorln("TransferBalance.GetUserByUsername", err)
 		return TransferBalanceResponse{
 			Code: http.StatusNotFound,
-		}, nil
+		}, err
 	}
 
 	err = u.balance.DisburmentBalance(ctx, domainbalance.DisburmentBalanceRequest{

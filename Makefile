@@ -1,6 +1,6 @@
 .PHONY: init build run
 
-all: init build run
+all: init build test run
 
 init:
 	go mod tidy
@@ -9,6 +9,10 @@ init:
 
 build:
 	go build -o build/wallet-system.exe cmd/main.go 
+
+test:
+	go clean -testcache
+	go test -short -coverprofile coverage.out -short -v ./...
 
 run:
 	docker compose up --build -d

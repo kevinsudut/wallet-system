@@ -21,7 +21,7 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 		}, err
 	}
 
-	if user.Username != "" {
+	if user.Id != "" {
 		return RegisterUserResponse{
 			Code: http.StatusConflict,
 		}, fmt.Errorf("username already exists")

@@ -7,7 +7,7 @@ type lruCache struct {
 }
 
 func Init() LRUCacheItf {
-	return lruCache{
+	return &lruCache{
 		cache: ccache.New(ccache.Configure[string]()),
 	}
 }

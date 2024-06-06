@@ -1,8 +1,6 @@
 package token
 
-import (
-	"os"
-)
+import "os"
 
 type token struct {
 	privateKey []byte
@@ -20,7 +18,7 @@ func Init() (TokenItf, error) {
 		return nil, err
 	}
 
-	return token{
+	return &token{
 		privateKey: prvKey,
 		publicKey:  pubKey,
 	}, nil

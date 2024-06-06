@@ -246,7 +246,7 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 }
 
 func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []HistorySummary, err error) {
-	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId), func() (interface{}, error) {
+	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId, historyType), func() (interface{}, error) {
 		var resp []HistorySummary
 		historySummaries, err := d.cache.Fetch(fmt.Sprintf(memcacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (string, error) {
 			var historySummary []HistorySummary

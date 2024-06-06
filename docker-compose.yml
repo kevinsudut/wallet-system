@@ -10,6 +10,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
   db:
     platform: linux/x86_64
     image: postgres:14.1-alpine
@@ -33,6 +35,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+  redis:
+    platform: linux/x86_64
+    image: redis:6.2.6-alpine
+    restart: always
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 volumes:
   db:
+    driver: local
+  redis:
     driver: local

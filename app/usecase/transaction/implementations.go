@@ -29,7 +29,7 @@ func (u usecase) ListOverallTopTransactingUsersByValue(ctx context.Context, req 
 				log.Errorln("ListOverallTopTransactingUsersByValue.GetUserById", err)
 				return ListOverallTopTransactingUsersByValueResponse{
 					Code: http.StatusUnauthorized,
-				}, nil
+				}, err
 			}
 
 			resp.Data[idx] = ListOverallTopTransactingUsersByValue{
@@ -62,7 +62,7 @@ func (u usecase) TopTransactionsForUser(ctx context.Context, req TopTransactions
 		}
 
 		sort.Slice(histories, func(i, j int) bool {
-			return histories[i].Amount < histories[j].Amount
+			return histories[i].Amount > histories[j].Amount
 		})
 
 		resp.Data = make([]TopTransactionsForUser, len(histories))
@@ -72,7 +72,7 @@ func (u usecase) TopTransactionsForUser(ctx context.Context, req TopTransactions
 				log.Errorln("TopTransactionsForUser.GetUserById", err)
 				return TopTransactionsForUserResponse{
 					Code: http.StatusUnauthorized,
-				}, nil
+				}, err
 			}
 
 			resp.Data[idx] = TopTransactionsForUser{

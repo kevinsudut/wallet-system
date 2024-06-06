@@ -17,5 +17,6 @@ func SetAuth(ctx context.Context, user domainauth.User) context.Context {
 }
 
 func GetAuth(ctx context.Context) domainauth.User {
-	return ctx.Value(contextAuth).(domainauth.User)
+	user, _ := ctx.Value(contextAuth).(domainauth.User)
+	return user
 }
