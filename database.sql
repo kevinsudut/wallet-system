@@ -36,4 +36,4 @@ CREATE TABLE IF NOT EXISTS history_summaries (
   updated_at TIMESTAMP WITH TIME ZONE NULL
 );
 
-CREATE INDEX history_summaries_username_amount_desc_type ON history_summaries (user_id, amount DESC, type);
+CREATE INDEX history_summaries_user_id_amount_desc_type ON history_summaries (user_id, amount DESC, type);
