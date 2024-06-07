@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	entity "github.com/kevinsudut/wallet-system/app/entity"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +41,10 @@ func (m *MockDomainItf) EXPECT() *MockDomainItfMockRecorder {
 }
 
 // GetUserById mocks base method.
-func (m *MockDomainItf) GetUserById(ctx context.Context, id string) (User, error) {
+func (m *MockDomainItf) GetUserById(ctx context.Context, id string) (entity.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserById", ctx, id)
-	ret0, _ := ret[0].(User)
+	ret0, _ := ret[0].(entity.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -55,10 +56,10 @@ func (mr *MockDomainItfMockRecorder) GetUserById(ctx, id any) *gomock.Call {
 }
 
 // GetUserByUsername mocks base method.
-func (m *MockDomainItf) GetUserByUsername(ctx context.Context, username string) (User, error) {
+func (m *MockDomainItf) GetUserByUsername(ctx context.Context, username string) (entity.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
-	ret0, _ := ret[0].(User)
+	ret0, _ := ret[0].(entity.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -70,7 +71,7 @@ func (mr *MockDomainItfMockRecorder) GetUserByUsername(ctx, username any) *gomoc
 }
 
 // InsertUser mocks base method.
-func (m *MockDomainItf) InsertUser(ctx context.Context, user User) error {
+func (m *MockDomainItf) InsertUser(ctx context.Context, user entity.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InsertUser", ctx, user)
 	ret0, _ := ret[0].(error)

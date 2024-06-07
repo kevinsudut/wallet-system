@@ -11,6 +11,7 @@ import (
 
 	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -59,7 +60,7 @@ func Test_usecase_ReadBalanceByUserId(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}, nil),
@@ -83,7 +84,7 @@ func Test_usecase_ReadBalanceByUserId(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{}, fmt.Errorf("foo")),
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{}, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -146,7 +147,7 @@ func Test_usecase_TopupBalance(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GrantBalanceByUserId(gomock.Any(), domainbalance.Balance{
+					mockDomainBalance.EXPECT().GrantBalanceByUserId(gomock.Any(), entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}).Return(nil),
@@ -171,7 +172,7 @@ func Test_usecase_TopupBalance(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GrantBalanceByUserId(gomock.Any(), domainbalance.Balance{
+					mockDomainBalance.EXPECT().GrantBalanceByUserId(gomock.Any(), entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}).Return(fmt.Errorf("foo")),
@@ -258,11 +259,11 @@ func Test_usecase_TransferBalance(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(entity.User{
 						Id:       "id",
 						Username: "tousername",
 					}, nil),
@@ -294,11 +295,11 @@ func Test_usecase_TransferBalance(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(entity.User{
 						Id:       "id",
 						Username: "tousername",
 					}, nil),
@@ -330,11 +331,11 @@ func Test_usecase_TransferBalance(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "tousername").Return(entity.User{
 						Id:       "id",
 						Username: "tousername",
 					}, sql.ErrNoRows),
@@ -361,7 +362,7 @@ func Test_usecase_TransferBalance(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 100,
 					}, fmt.Errorf("foo")),
@@ -388,7 +389,7 @@ func Test_usecase_TransferBalance(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(domainbalance.Balance{
+					mockDomainBalance.EXPECT().GetBalanceByUserId(gomock.Any(), "id").Return(entity.Balance{
 						UserId: "id",
 						Amount: 99,
 					}, nil),

@@ -8,16 +8,26 @@ To run this project you need to have the following installed:
     ```
     go install go.uber.org/mock/mockgen@latest
     ```
-3. [Docker](https://docs.docker.com/get-docker/) version 20   
-4. [Docker Compose](https://docs.docker.com/compose/install/) version 1.29
+3. [Docker](https://docs.docker.com/get-docker/) version 26   
+4. [Docker Compose](https://docs.docker.com/compose/install/) version 2.27
+
+## Tech Stack
+1. Go version 1.21 is used as the backend programming language
+2. PostgreSQL v14 is utilized as the data store. The `github.com/jmoiron/sqlx` library is used to connect the backend system to the database
+3. Redis v6 is utilized for caching mechanisms. The `github.com/redis/go-redis/v9` library is used to connect the backend system to Redis
+4. The `github.com/karlseguin/ccache/v3` library is used for local memory caching that used the LRU algorithm to store data
+5. The `github.com/golang-jwt/jwt` library is used for authentication using JWT tokens
+6. The `github.com/gorilla/mux` library is used for build the HTTP server
+
+## Architecture Pattern
+This service code implements the Clean Architecture design based on Uncle Bob's Clean Architecture principles, as outlined in his blog post available [here](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 ## Initiate The Project
 To start working, execute
-
 ```
 make
 ```
-The wallet system will running on http://localhost:8000
+The wallet system will be running on http://localhost:8000
 
 ## List Available API
 1. Register new user (http://localhost:8000/create_user)
@@ -74,3 +84,4 @@ To run api test, run the following command:
 ```
 make test_api
 ```
+Make sure the wallet system already running before run this command

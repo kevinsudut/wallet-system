@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 )
 
 func TestSetAuth(t *testing.T) {
 	type args struct {
 		ctx  context.Context
-		user domainauth.User
+		user entity.User
 	}
 	tests := []struct {
 		name string
@@ -21,9 +21,9 @@ func TestSetAuth(t *testing.T) {
 		{
 			args: args{
 				ctx:  context.Background(),
-				user: domainauth.User{},
+				user: entity.User{},
 			},
-			want: context.WithValue(context.Background(), contextAuth, domainauth.User{}),
+			want: context.WithValue(context.Background(), contextAuth, entity.User{}),
 		},
 	}
 	for _, tt := range tests {
@@ -42,13 +42,13 @@ func TestGetAuth(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want domainauth.User
+		want entity.User
 	}{
 		{
 			args: args{
 				ctx: context.Background(),
 			},
-			want: domainauth.User{},
+			want: entity.User{},
 		},
 	}
 	for _, tt := range tests {

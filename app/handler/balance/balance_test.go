@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	handlertemplate "github.com/kevinsudut/wallet-system/app/handler/template"
 	usecasebalance "github.com/kevinsudut/wallet-system/app/usecase/balance"
 	"github.com/kevinsudut/wallet-system/pkg/helper/context"
@@ -27,7 +27,7 @@ func Test_handler_ReadBalance(t *testing.T) {
 	defer ctrl.Finish()
 	mockUsecaseBalance := usecasebalance.NewMockUsecaseItf(ctrl)
 
-	ctx := context.SetAuth(ctx.Background(), domainauth.User{
+	ctx := context.SetAuth(ctx.Background(), entity.User{
 		Id:       "id",
 		Username: "username",
 	})
@@ -101,7 +101,7 @@ func Test_handler_TopupBalance(t *testing.T) {
 	defer ctrl.Finish()
 	mockUsecaseBalance := usecasebalance.NewMockUsecaseItf(ctrl)
 
-	ctx := context.SetAuth(ctx.Background(), domainauth.User{
+	ctx := context.SetAuth(ctx.Background(), entity.User{
 		Id:       "id",
 		Username: "username",
 	})
@@ -198,7 +198,7 @@ func Test_handler_TransferBalance(t *testing.T) {
 	defer ctrl.Finish()
 	mockUsecaseBalance := usecasebalance.NewMockUsecaseItf(ctrl)
 
-	ctx := context.SetAuth(ctx.Background(), domainauth.User{
+	ctx := context.SetAuth(ctx.Background(), entity.User{
 		Id:       "id",
 		Username: "username",
 	})

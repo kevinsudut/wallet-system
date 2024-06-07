@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/helper/context"
 	"github.com/kevinsudut/wallet-system/pkg/helper/response"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
@@ -26,7 +26,7 @@ func (h handler) authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			var user domainauth.User
+			var user entity.User
 			err = jsoniter.UnmarshalFromString(data.(string), &user)
 			if err != nil {
 				log.Errorln("authMiddleware.UnmarshalFromString", err)

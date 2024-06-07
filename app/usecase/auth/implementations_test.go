@@ -11,6 +11,7 @@ import (
 	"time"
 
 	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 	"github.com/kevinsudut/wallet-system/pkg/lib/token"
 	gomock "go.uber.org/mock/gomock"
@@ -62,7 +63,7 @@ func Test_usecase_RegisterUser(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(domainauth.User{}, sql.ErrNoRows),
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(entity.User{}, sql.ErrNoRows),
 					mockDomainAuth.EXPECT().InsertUser(gomock.Any(), gomock.Any()).Return(nil),
 					mockToken.EXPECT().Create(time.Hour, gomock.Any()).Return("token", nil),
 				)
@@ -86,7 +87,7 @@ func Test_usecase_RegisterUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(domainauth.User{}, sql.ErrNoRows),
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(entity.User{}, sql.ErrNoRows),
 					mockDomainAuth.EXPECT().InsertUser(gomock.Any(), gomock.Any()).Return(nil),
 					mockToken.EXPECT().Create(time.Hour, gomock.Any()).Return("", fmt.Errorf("foo")),
 				)
@@ -110,7 +111,7 @@ func Test_usecase_RegisterUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(domainauth.User{}, sql.ErrNoRows),
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(entity.User{}, sql.ErrNoRows),
 					mockDomainAuth.EXPECT().InsertUser(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")),
 				)
 			},
@@ -133,7 +134,7 @@ func Test_usecase_RegisterUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(domainauth.User{}, fmt.Errorf("foo")),
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(entity.User{}, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -155,7 +156,7 @@ func Test_usecase_RegisterUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserByUsername(gomock.Any(), "username").Return(entity.User{
 						Id:       "id",
 						Username: "username",
 					}, nil),

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/helper/singleflight"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
@@ -24,12 +25,12 @@ var (
 
 func TestMain(m *testing.M) {
 	log.Init()
-	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "test"), Balance{}, time.Minute*5)
-	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id"), Balance{
+	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "test"), entity.Balance{}, time.Minute*5)
+	cache.Set(fmt.Sprintf(cacheKeyGetBalanceByUserId, "id"), entity.Balance{
 		UserId: "id",
 		Amount: 10,
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id"), []History{
+	cache.Set(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, "id"), []entity.History{
 		{
 			UserId:       "id",
 			TargetUserId: "id",
@@ -37,7 +38,7 @@ func TestMain(m *testing.M) {
 			Type:         1,
 		},
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1), []HistorySummary{
+	cache.Set(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, "id", 1), []entity.HistorySummary{
 		{
 			UserId:       "id",
 			TargetUserId: "id",
@@ -70,7 +71,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 		name     string
 		fields   fields
 		args     args
-		wantResp Balance
+		wantResp entity.Balance
 		wantErr  bool
 		mock     func()
 	}{
@@ -89,7 +90,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 				ctx:    context.Background(),
 				userId: "id",
 			},
-			wantResp: Balance{
+			wantResp: entity.Balance{
 				UserId: "id",
 				Amount: 10,
 			},
@@ -117,7 +118,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 				ctx:    context.Background(),
 				userId: "id",
 			},
-			wantResp: Balance{},
+			wantResp: entity.Balance{},
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
@@ -140,7 +141,7 @@ func Test_domain_GetBalanceByUserId(t *testing.T) {
 				ctx:    context.Background(),
 				userId: "test",
 			},
-			wantResp: Balance{},
+			wantResp: entity.Balance{},
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
@@ -189,7 +190,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		balance Balance
+		balance entity.Balance
 	}
 	tests := []struct {
 		name    string
@@ -212,7 +213,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -254,7 +255,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -295,7 +296,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -333,7 +334,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -370,7 +371,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -404,7 +405,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -434,7 +435,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -463,7 +464,7 @@ func Test_domain_GrantBalanceByUserId(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				balance: Balance{
+				balance: entity.Balance{
 					UserId: "id",
 					Amount: 10,
 				},
@@ -827,7 +828,7 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 		name     string
 		fields   fields
 		args     args
-		wantResp []History
+		wantResp []entity.History
 		wantErr  bool
 		mock     func()
 	}{
@@ -846,7 +847,7 @@ func Test_domain_GetLatestHistoryByUserId(t *testing.T) {
 				ctx:    context.Background(),
 				userId: "id",
 			},
-			wantResp: []History{
+			wantResp: []entity.History{
 				{
 					UserId:       "id",
 					TargetUserId: "id",
@@ -932,7 +933,7 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 		name     string
 		fields   fields
 		args     args
-		wantResp []HistorySummary
+		wantResp []entity.HistorySummary
 		wantErr  bool
 		mock     func()
 	}{
@@ -952,7 +953,7 @@ func Test_domain_GetHistorySummaryByUserIdAndType(t *testing.T) {
 				userId:      "id",
 				historyType: 1,
 			},
-			wantResp: []HistorySummary{
+			wantResp: []entity.HistorySummary{
 				{
 					UserId:       "id",
 					TargetUserId: "id",

@@ -1,4 +1,4 @@
-package domainbalance
+package enum
 
 type HistoryType int
 

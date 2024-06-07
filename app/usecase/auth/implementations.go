@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
@@ -27,7 +27,7 @@ func (u usecase) RegisterUser(ctx context.Context, req RegisterUserRequest) (res
 		}, fmt.Errorf("username already exists")
 	}
 
-	user = domainauth.User{
+	user = entity.User{
 		Id:       uuid.NewString(),
 		Username: req.Username,
 	}

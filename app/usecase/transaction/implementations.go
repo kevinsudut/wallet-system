@@ -7,7 +7,8 @@ import (
 	"sort"
 	"sync"
 
-	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
+	"github.com/kevinsudut/wallet-system/app/entity"
+	"github.com/kevinsudut/wallet-system/app/enum"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
@@ -15,7 +16,7 @@ func (u usecase) ListOverallTopTransactingUsersByValue(ctx context.Context, req 
 	result, err, _ := u.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyListOverallTopTransactingUsersByValue, req.UserId), func() (interface{}, error) {
 		var resp ListOverallTopTransactingUsersByValueResponse
 
-		historySummaries, err := u.balance.GetHistorySummaryByUserIdAndType(ctx, req.UserId, int(domainbalance.DEBIT))
+		historySummaries, err := u.balance.GetHistorySummaryByUserIdAndType(ctx, req.UserId, int(enum.DEBIT))
 		if err != nil {
 			log.Errorln("ListOverallTopTransactingUsersByValue.GetHistorySummaryByUserIdAndType", err)
 			return ListOverallTopTransactingUsersByValueResponse{
@@ -31,7 +32,7 @@ func (u usecase) ListOverallTopTransactingUsersByValue(ctx context.Context, req 
 		for idx, historySummary := range historySummaries {
 			wg.Add(1)
 
-			go func(idx int, historySummary domainbalance.HistorySummary) {
+			go func(idx int, historySummary entity.HistorySummary) {
 				goroutineSem <- struct{}{}
 				defer func() {
 					<-goroutineSem
@@ -100,7 +101,7 @@ func (u usecase) TopTransactionsForUser(ctx context.Context, req TopTransactions
 		for idx, history := range histories {
 			wg.Add(1)
 
-			go func(idx int, history domainbalance.History) {
+			go func(idx int, history entity.History) {
 				goroutineSem <- struct{}{}
 				defer func() {
 					<-goroutineSem

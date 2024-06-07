@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 )
 
@@ -32,7 +33,7 @@ func (u usecase) TopupBalance(ctx context.Context, req TopupBalanceRequest) (res
 		}, fmt.Errorf("invalid topup amount")
 	}
 
-	err = u.balance.GrantBalanceByUserId(ctx, domainbalance.Balance{
+	err = u.balance.GrantBalanceByUserId(ctx, entity.Balance{
 		UserId: req.UserId,
 		Amount: req.Amount,
 	})

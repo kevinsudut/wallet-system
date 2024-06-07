@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	usecasetransaction "github.com/kevinsudut/wallet-system/app/usecase/transaction"
 	"github.com/kevinsudut/wallet-system/pkg/helper/context"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
@@ -25,7 +25,7 @@ func Test_handler_ListOverallTopTransactingUsersByValue(t *testing.T) {
 	defer ctrl.Finish()
 	mockUsecaseTransaction := usecasetransaction.NewMockUsecaseItf(ctrl)
 
-	ctx := context.SetAuth(ctx.Background(), domainauth.User{
+	ctx := context.SetAuth(ctx.Background(), entity.User{
 		Id:       "id",
 		Username: "username",
 	})
@@ -99,7 +99,7 @@ func Test_handler_TopTransactionsForUser(t *testing.T) {
 	defer ctrl.Finish()
 	mockUsecaseTransaction := usecasetransaction.NewMockUsecaseItf(ctrl)
 
-	ctx := context.SetAuth(ctx.Background(), domainauth.User{
+	ctx := context.SetAuth(ctx.Background(), entity.User{
 		Id:       "id",
 		Username: "username",
 	})

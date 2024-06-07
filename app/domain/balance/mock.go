@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	entity "github.com/kevinsudut/wallet-system/app/entity"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -54,10 +55,10 @@ func (mr *MockDomainItfMockRecorder) DisburmentBalance(ctx, req any) *gomock.Cal
 }
 
 // GetBalanceByUserId mocks base method.
-func (m *MockDomainItf) GetBalanceByUserId(ctx context.Context, userId string) (Balance, error) {
+func (m *MockDomainItf) GetBalanceByUserId(ctx context.Context, userId string) (entity.Balance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBalanceByUserId", ctx, userId)
-	ret0, _ := ret[0].(Balance)
+	ret0, _ := ret[0].(entity.Balance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -69,10 +70,10 @@ func (mr *MockDomainItfMockRecorder) GetBalanceByUserId(ctx, userId any) *gomock
 }
 
 // GetHistorySummaryByUserIdAndType mocks base method.
-func (m *MockDomainItf) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) ([]HistorySummary, error) {
+func (m *MockDomainItf) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) ([]entity.HistorySummary, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHistorySummaryByUserIdAndType", ctx, userId, historyType)
-	ret0, _ := ret[0].([]HistorySummary)
+	ret0, _ := ret[0].([]entity.HistorySummary)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -84,10 +85,10 @@ func (mr *MockDomainItfMockRecorder) GetHistorySummaryByUserIdAndType(ctx, userI
 }
 
 // GetLatestHistoryByUserId mocks base method.
-func (m *MockDomainItf) GetLatestHistoryByUserId(ctx context.Context, userId string) ([]History, error) {
+func (m *MockDomainItf) GetLatestHistoryByUserId(ctx context.Context, userId string) ([]entity.History, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLatestHistoryByUserId", ctx, userId)
-	ret0, _ := ret[0].([]History)
+	ret0, _ := ret[0].([]entity.History)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -99,7 +100,7 @@ func (mr *MockDomainItfMockRecorder) GetLatestHistoryByUserId(ctx, userId any) *
 }
 
 // GrantBalanceByUserId mocks base method.
-func (m *MockDomainItf) GrantBalanceByUserId(ctx context.Context, balance Balance) error {
+func (m *MockDomainItf) GrantBalanceByUserId(ctx context.Context, balance entity.Balance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GrantBalanceByUserId", ctx, balance)
 	ret0, _ := ret[0].(error)

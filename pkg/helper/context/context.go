@@ -3,7 +3,7 @@ package context
 import (
 	"context"
 
-	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
+	"github.com/kevinsudut/wallet-system/app/entity"
 )
 
 type ctx string
@@ -12,11 +12,11 @@ const (
 	contextAuth ctx = "context.auth"
 )
 
-func SetAuth(ctx context.Context, user domainauth.User) context.Context {
+func SetAuth(ctx context.Context, user entity.User) context.Context {
 	return context.WithValue(ctx, contextAuth, user)
 }
 
-func GetAuth(ctx context.Context) domainauth.User {
-	user, _ := ctx.Value(contextAuth).(domainauth.User)
+func GetAuth(ctx context.Context) entity.User {
+	user, _ := ctx.Value(contextAuth).(entity.User)
 	return user
 }

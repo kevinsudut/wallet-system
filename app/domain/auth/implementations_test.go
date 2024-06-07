@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/helper/singleflight"
 	"github.com/kevinsudut/wallet-system/pkg/lib/database"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
@@ -23,15 +24,15 @@ var (
 
 func TestMain(m *testing.M) {
 	log.Init()
-	cache.Set(fmt.Sprintf(cacheKeyGetUserById, "id"), User{
+	cache.Set(fmt.Sprintf(cacheKeyGetUserById, "id"), entity.User{
 		Id:       "id",
 		Username: "username",
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), User{
+	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), entity.User{
 		Id:       "id",
 		Username: "username",
 	}, time.Minute*5)
-	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "test"), User{}, time.Minute*5)
+	cache.Set(fmt.Sprintf(cacheKeyGetUserByUsername, "test"), entity.User{}, time.Minute*5)
 	os.Exit(m.Run())
 }
 
@@ -51,7 +52,7 @@ func Test_domain_InsertUser(t *testing.T) {
 	}
 	type args struct {
 		ctx  context.Context
-		user User
+		user entity.User
 	}
 	tests := []struct {
 		name    string
@@ -72,7 +73,7 @@ func Test_domain_InsertUser(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				user: User{
+				user: entity.User{
 					Id:       "id",
 					Username: "username",
 				},
@@ -83,11 +84,11 @@ func Test_domain_InsertUser(t *testing.T) {
 					mockDatabase.EXPECT().ExecContextStmt(gomock.Any(), gomock.Any(), "id", "username").Return(nil),
 					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserById, "id"), gomock.Any(), time.Minute*30).Return("", nil),
 					mockRedis.EXPECT().SetEx(gomock.Any(), fmt.Sprintf(cacheKeyGetUserByUsername, "username"), gomock.Any(), time.Minute*30).Return("", nil),
-					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserById, "id"), User{
+					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserById, "id"), entity.User{
 						Id:       "id",
 						Username: "username",
 					}, time.Minute*5),
-					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), User{
+					mockCache.EXPECT().Set(fmt.Sprintf(cacheKeyGetUserByUsername, "username"), entity.User{
 						Id:       "id",
 						Username: "username",
 					}, time.Minute*5),
@@ -106,7 +107,7 @@ func Test_domain_InsertUser(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				user: User{
+				user: entity.User{
 					Id:       "id",
 					Username: "username",
 				},
@@ -131,7 +132,7 @@ func Test_domain_InsertUser(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				user: User{
+				user: entity.User{
 					Id:       "id",
 					Username: "username",
 				},
@@ -157,7 +158,7 @@ func Test_domain_InsertUser(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				user: User{
+				user: entity.User{
 					Id:       "id",
 					Username: "username",
 				},
@@ -209,7 +210,7 @@ func Test_domain_GetUserById(t *testing.T) {
 		name     string
 		fields   fields
 		args     args
-		wantResp User
+		wantResp entity.User
 		wantErr  bool
 		mock     func()
 	}{
@@ -228,7 +229,7 @@ func Test_domain_GetUserById(t *testing.T) {
 				ctx: context.Background(),
 				id:  "id",
 			},
-			wantResp: User{
+			wantResp: entity.User{
 				Id:       "id",
 				Username: "username",
 			},
@@ -256,7 +257,7 @@ func Test_domain_GetUserById(t *testing.T) {
 				ctx: context.Background(),
 				id:  "id",
 			},
-			wantResp: User{},
+			wantResp: entity.User{},
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
@@ -309,7 +310,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 		name     string
 		fields   fields
 		args     args
-		wantResp User
+		wantResp entity.User
 		wantErr  bool
 		mock     func()
 	}{
@@ -328,7 +329,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 				ctx:      context.Background(),
 				username: "username",
 			},
-			wantResp: User{
+			wantResp: entity.User{
 				Id:       "id",
 				Username: "username",
 			},
@@ -356,7 +357,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 				ctx:      context.Background(),
 				username: "test",
 			},
-			wantResp: User{},
+			wantResp: entity.User{},
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(
@@ -379,7 +380,7 @@ func Test_domain_GetUserByUsername(t *testing.T) {
 				ctx:      context.Background(),
 				username: "username",
 			},
-			wantResp: User{},
+			wantResp: entity.User{},
 			wantErr:  true,
 			mock: func() {
 				gomock.InOrder(

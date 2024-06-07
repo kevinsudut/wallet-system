@@ -8,9 +8,11 @@ import (
 
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/kevinsudut/wallet-system/app/entity"
+	"github.com/kevinsudut/wallet-system/app/enum"
 )
 
-func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Balance, err error) {
+func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp entity.Balance, err error) {
 	defer func() {
 		if err == nil && resp.UserId == "" {
 			err = sql.ErrNoRows
@@ -18,11 +20,11 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 	}()
 
 	balance, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetBalanceByUserId, userId), func() (interface{}, error) {
-		var resp Balance
+		var resp entity.Balance
 		balance, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetBalanceByUserId, userId), time.Minute*5, func() (interface{}, error) {
-			var respRedis Balance
+			var respRedis entity.Balance
 			balanceStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetBalanceByUserId, userId), time.Duration(time.Minute*30), func() (interface{}, error) {
-				var balance Balance
+				var balance entity.Balance
 				err := d.db.GetContextStmt(ctx, d.stmts.getBalanceByUserId, &balance, userId)
 				if err != nil && err != sql.ErrNoRows {
 					return balance, err
@@ -45,16 +47,16 @@ func (d domain) GetBalanceByUserId(ctx context.Context, userId string) (resp Bal
 			return resp, err
 		}
 
-		return balance.Value().(Balance), nil
+		return balance.Value().(entity.Balance), nil
 	})
 	if err != nil {
 		return resp, err
 	}
 
-	return balance.(Balance), nil
+	return balance.(entity.Balance), nil
 }
 
-func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
+func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance entity.Balance) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.grantBalanceByUserId, balance.UserId, balance.Amount)
 	if err != nil {
 		return err
@@ -70,7 +72,7 @@ func (d domain) grantBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Ba
 	return nil
 }
 
-func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance Balance) (err error) {
+func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance entity.Balance) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.deductBalanceByUserId, balance.Amount, balance.UserId)
 	if err != nil {
 		return err
@@ -86,13 +88,13 @@ func (d domain) deductBalanceByUserId(ctx context.Context, tx *sql.Tx, balance B
 	return nil
 }
 
-func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) (err error) {
+func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history entity.History) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.insertHistory, history.Id, history.UserId, history.TargetUserId, history.Amount, history.Type, history.Notes)
 	if err != nil {
 		return err
 	}
 
-	err = d.updateHistorySummary(ctx, tx, HistorySummary{
+	err = d.updateHistorySummary(ctx, tx, entity.HistorySummary{
 		UserId:       history.UserId,
 		TargetUserId: history.TargetUserId,
 		Amount:       history.Amount,
@@ -112,7 +114,7 @@ func (d domain) insertHistory(ctx context.Context, tx *sql.Tx, history History) 
 	return nil
 }
 
-func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySummary HistorySummary) (err error) {
+func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySummary entity.HistorySummary) (err error) {
 	err = d.db.ExecContextStmtTx(ctx, tx, d.stmts.updateHistorySummaryById, historySummary.GetId(), historySummary.UserId, historySummary.TargetUserId, historySummary.Amount, historySummary.Type)
 	if err != nil {
 		return err
@@ -128,7 +130,7 @@ func (d domain) updateHistorySummary(ctx context.Context, tx *sql.Tx, historySum
 	return nil
 }
 
-func (d domain) GrantBalanceByUserId(ctx context.Context, balance Balance) (err error) {
+func (d domain) GrantBalanceByUserId(ctx context.Context, balance entity.Balance) (err error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
@@ -147,12 +149,12 @@ func (d domain) GrantBalanceByUserId(ctx context.Context, balance Balance) (err 
 		return err
 	}
 
-	err = d.insertHistory(ctx, tx, History{
+	err = d.insertHistory(ctx, tx, entity.History{
 		Id:           uuid.NewString(),
 		UserId:       balance.UserId,
 		TargetUserId: balance.UserId,
 		Amount:       balance.Amount,
-		Type:         int(CREDIT),
+		Type:         int(enum.CREDIT),
 		Notes:        "Top-up money",
 	})
 	if err != nil {
@@ -176,7 +178,7 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 		}
 	}()
 
-	err = d.grantBalanceByUserId(ctx, tx, Balance{
+	err = d.grantBalanceByUserId(ctx, tx, entity.Balance{
 		UserId: req.ToUserId,
 		Amount: req.Amount,
 	})
@@ -184,7 +186,7 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 		return err
 	}
 
-	err = d.deductBalanceByUserId(ctx, tx, Balance{
+	err = d.deductBalanceByUserId(ctx, tx, entity.Balance{
 		UserId: req.UserId,
 		Amount: req.Amount,
 	})
@@ -192,24 +194,24 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 		return err
 	}
 
-	err = d.insertHistory(ctx, tx, History{
+	err = d.insertHistory(ctx, tx, entity.History{
 		Id:           uuid.NewString(),
 		UserId:       req.ToUserId,
 		TargetUserId: req.UserId,
 		Amount:       req.Amount,
-		Type:         int(CREDIT),
+		Type:         int(enum.CREDIT),
 		Notes:        fmt.Sprintf("Receive money from %s", req.UserId),
 	})
 	if err != nil {
 		return err
 	}
 
-	err = d.insertHistory(ctx, tx, History{
+	err = d.insertHistory(ctx, tx, entity.History{
 		Id:           uuid.NewString(),
 		UserId:       req.UserId,
 		TargetUserId: req.ToUserId,
 		Amount:       req.Amount,
-		Type:         int(DEBIT),
+		Type:         int(enum.DEBIT),
 		Notes:        fmt.Sprintf("Transfer money to %s", req.ToUserId),
 	})
 	if err != nil {
@@ -219,7 +221,7 @@ func (d domain) DisburmentBalance(ctx context.Context, req DisburmentBalanceRequ
 	return nil
 }
 
-func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (resp []History, err error) {
+func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (resp []entity.History, err error) {
 	defer func() {
 		if err == nil {
 			for i := range resp {
@@ -229,11 +231,11 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 	}()
 
 	histories, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetLatestHistoryByUserId, userId), func() (interface{}, error) {
-		var resp []History
+		var resp []entity.History
 		histories, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Minute*5, func() (interface{}, error) {
-			var respRedis []History
+			var respRedis []entity.History
 			historiesStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetLatestHistoryByUserId, userId), time.Duration(time.Minute*30), func() (interface{}, error) {
-				var history []History
+				var history []entity.History
 				err := d.db.SelectContextStmt(ctx, d.stmts.getLatestHistoryByUserId, &history, userId)
 				if err != nil {
 					return history, err
@@ -256,22 +258,22 @@ func (d domain) GetLatestHistoryByUserId(ctx context.Context, userId string) (re
 			return resp, err
 		}
 
-		return histories.Value().([]History), nil
+		return histories.Value().([]entity.History), nil
 	})
 	if err != nil {
 		return resp, err
 	}
 
-	return histories.([]History), nil
+	return histories.([]entity.History), nil
 }
 
-func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []HistorySummary, err error) {
+func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId string, historyType int) (resp []entity.HistorySummary, err error) {
 	historySummaries, err, _ := d.singleflight.DoSingleFlight(ctx, fmt.Sprintf(singleFlightKeyGetHistorySummaryByUserIdAndType, userId, historyType), func() (interface{}, error) {
-		var resp []HistorySummary
+		var resp []entity.HistorySummary
 		historySummaries, err := d.cache.Fetch(fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Minute*5, func() (interface{}, error) {
-			var respRedis []HistorySummary
+			var respRedis []entity.HistorySummary
 			historySummariesStr, err := d.redis.Fetch(ctx, fmt.Sprintf(cacheKeyGetHistorySummaryByUserIdAndType, userId, historyType), time.Duration(time.Minute*30), func() (interface{}, error) {
-				var historySummary []HistorySummary
+				var historySummary []entity.HistorySummary
 				err := d.db.SelectContextStmt(ctx, d.stmts.getHistorySummaryByUserIdAndType, &historySummary, userId, historyType)
 				if err != nil {
 					return historySummary, err
@@ -294,11 +296,11 @@ func (d domain) GetHistorySummaryByUserIdAndType(ctx context.Context, userId str
 			return resp, err
 		}
 
-		return historySummaries.Value().([]HistorySummary), nil
+		return historySummaries.Value().([]entity.HistorySummary), nil
 	})
 	if err != nil {
 		return resp, err
 	}
 
-	return historySummaries.([]HistorySummary), nil
+	return historySummaries.([]entity.HistorySummary), nil
 }

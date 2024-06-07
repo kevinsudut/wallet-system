@@ -10,6 +10,7 @@ import (
 
 	domainauth "github.com/kevinsudut/wallet-system/app/domain/auth"
 	domainbalance "github.com/kevinsudut/wallet-system/app/domain/balance"
+	"github.com/kevinsudut/wallet-system/app/entity"
 	"github.com/kevinsudut/wallet-system/pkg/helper/singleflight"
 	"github.com/kevinsudut/wallet-system/pkg/lib/log"
 	gomock "go.uber.org/mock/gomock"
@@ -73,7 +74,7 @@ func Test_usecase_ListOverallTopTransactingUsersByValue(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]domainbalance.HistorySummary{
+					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]entity.HistorySummary{
 						{
 							UserId:       "id",
 							TargetUserId: "target1",
@@ -87,11 +88,11 @@ func Test_usecase_ListOverallTopTransactingUsersByValue(t *testing.T) {
 							Type:         2,
 						},
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(entity.User{
 						Id:       "target1",
 						Username: "user1",
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(entity.User{
 						Id:       "target1",
 						Username: "user1",
 					}, nil),
@@ -117,7 +118,7 @@ func Test_usecase_ListOverallTopTransactingUsersByValue(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]domainbalance.HistorySummary{
+					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]entity.HistorySummary{
 						{
 							UserId:       "id",
 							TargetUserId: "target1",
@@ -131,11 +132,11 @@ func Test_usecase_ListOverallTopTransactingUsersByValue(t *testing.T) {
 							Type:         2,
 						},
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(entity.User{
 						Id:       "target1",
 						Username: "user1",
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(domainauth.User{}, fmt.Errorf("foo")),
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "target1").Return(entity.User{}, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -158,7 +159,7 @@ func Test_usecase_ListOverallTopTransactingUsersByValue(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]domainbalance.HistorySummary{}, fmt.Errorf("foo")),
+					mockDomainBalance.EXPECT().GetHistorySummaryByUserIdAndType(gomock.Any(), "id", 2).Return([]entity.HistorySummary{}, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -236,7 +237,7 @@ func Test_usecase_TopTransactionsForUser(t *testing.T) {
 			wantErr: false,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]domainbalance.History{
+					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]entity.History{
 						{
 							UserId:       "id",
 							TargetUserId: "id",
@@ -250,11 +251,11 @@ func Test_usecase_TopTransactionsForUser(t *testing.T) {
 							Type:         1,
 						},
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(entity.User{
 						Id:       "id",
 						Username: "username",
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(domainauth.User{
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(entity.User{
 						Id:       "id",
 						Username: "username",
 					}, nil),
@@ -280,7 +281,7 @@ func Test_usecase_TopTransactionsForUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]domainbalance.History{
+					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]entity.History{
 						{
 							UserId:       "id",
 							TargetUserId: "id",
@@ -288,7 +289,7 @@ func Test_usecase_TopTransactionsForUser(t *testing.T) {
 							Type:         1,
 						},
 					}, nil),
-					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(domainauth.User{}, fmt.Errorf("foo")),
+					mockDomainAuth.EXPECT().GetUserById(gomock.Any(), "id").Return(entity.User{}, fmt.Errorf("foo")),
 				)
 			},
 		},
@@ -311,7 +312,7 @@ func Test_usecase_TopTransactionsForUser(t *testing.T) {
 			wantErr: true,
 			mock: func() {
 				gomock.InOrder(
-					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]domainbalance.History{}, fmt.Errorf("foo")),
+					mockDomainBalance.EXPECT().GetLatestHistoryByUserId(gomock.Any(), "id").Return([]entity.History{}, fmt.Errorf("foo")),
 				)
 			},
 		},
