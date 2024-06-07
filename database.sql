@@ -34,4 +34,4 @@ CREATE TABLE IF NOT EXISTS history_summaries (
 
 CREATE UNIQUE INDEX users_username_unq ON users (username); 
 CREATE INDEX histories_user_id_created_at_desc_idx ON histories (user_id, created_at DESC);
-CREATE INDEX history_summaries_user_id_amount_desc_type ON history_summaries (user_id, amount DESC, type);
+CREATE INDEX history_summaries_user_id_amount_desc_type_idx ON history_summaries (user_id, amount DESC, type);
