@@ -12,7 +12,7 @@ type History struct {
 }
 
 func (h *History) NormalizeAmount() {
-	if h.Type == int(enum.DEBIT) {
+	if h.Amount > 0 && h.Type == int(enum.DEBIT) {
 		h.Amount *= -1
 	}
 }

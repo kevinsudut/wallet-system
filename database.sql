@@ -1,11 +1,9 @@
 CREATE TABLE IF NOT EXISTS users (
   id CHAR(36) PRIMARY KEY,
-  username VARCHAR,
+  username VARCHAR NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NULL
 );
-
-CREATE UNIQUE INDEX users_username_unq ON users (username); 
 
 CREATE TABLE IF NOT EXISTS balances (
   user_id CHAR(36) PRIMARY KEY,
@@ -24,8 +22,6 @@ CREATE TABLE IF NOT EXISTS histories (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX histories_user_id_created_at_desc_idx ON histories (user_id, created_at DESC);
-
 CREATE TABLE IF NOT EXISTS history_summaries (
   id VARCHAR PRIMARY KEY,
   user_id CHAR(36) NOT NULL,
@@ -36,4 +32,6 @@ CREATE TABLE IF NOT EXISTS history_summaries (
   updated_at TIMESTAMP WITH TIME ZONE NULL
 );
 
+CREATE UNIQUE INDEX users_username_unq ON users (username); 
+CREATE INDEX histories_user_id_created_at_desc_idx ON histories (user_id, created_at DESC);
 CREATE INDEX history_summaries_user_id_amount_desc_type ON history_summaries (user_id, amount DESC, type);

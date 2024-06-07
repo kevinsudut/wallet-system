@@ -16,12 +16,23 @@ func TestHistory_NormalizeAmount(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
+		want   float64
 	}{
 		{
+			name: "+amount",
 			fields: fields{
 				Type:   2,
 				Amount: 100,
 			},
+			want: -100,
+		},
+		{
+			name: "-amount",
+			fields: fields{
+				Type:   2,
+				Amount: -100,
+			},
+			want: -100,
 		},
 	}
 	for _, tt := range tests {
@@ -35,6 +46,9 @@ func TestHistory_NormalizeAmount(t *testing.T) {
 				Notes:        tt.fields.Notes,
 			}
 			h.NormalizeAmount()
+			if got := h.Amount; got != tt.want {
+				t.Errorf("History.Amount = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
